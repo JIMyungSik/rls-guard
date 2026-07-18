@@ -33,7 +33,7 @@ A security tool that uploads your schema is itself a security risk. RLS Guard ru
 | RLS-007 | Policy omits every row condition (PostgreSQL defaults it to TRUE) | High/Critical |
 | STORAGE-001 | Storage write policy is not constrained by `bucket_id` | High |
 | GRANT-001 | Write privileges granted to `anon`/`public` | High |
-| ROLE-001 | Database roles with the `BYPASSRLS` attribute | Critical |
+| ROLE-001 | Database roles with `SUPERUSER` or `BYPASSRLS` | Critical |
 | FUNC-001 | `SECURITY DEFINER` functions with unpinned search_path | High |
 | VIEW-001 | Views without `security_invoker` (RLS bypass) | High |
 | SECRET-001 | Service keys / connection strings inside SQL | Critical |

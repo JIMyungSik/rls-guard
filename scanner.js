@@ -157,6 +157,14 @@ function extractModel(sql) {
     return tables.get(qualified);
   };
 
+  const ensureRole = (name) => {
+    const normalized = normalizeIdentifier(name);
+    if (!roles.has(normalized)) {
+      roles.set(normalized, { name: normalized, bypassRls: false, superuser: false, source: null });
+    }
+    return roles.get(normalized);
+  };
+
   for (const statement of statements) {
     const compact = statement.replace(/\s+/g, ' ').trim();
     const dropTable = compact.match(/drop\s+table\s+(?:if\s+exists\s+)?([\w".]+)/i);
@@ -281,23 +289,21 @@ function extractModel(sql) {
 
     const createRole = compact.match(/create\s+(?:role|user)\s+([\w".]+)([^]*)$/i);
     if (createRole) {
-      const name = normalizeIdentifier(createRole[1]);
-      roles.set(name, {
-        name,
-        bypassRls: /\bbypassrls\b/i.test(createRole[2]) && !/\bnobypassrls\b/i.test(createRole[2]),
-        source: compact
-      });
+      const role = ensureRole(createRole[1]);
+      role.bypassRls = /\bbypassrls\b/i.test(createRole[2]) && !/\bnobypassrls\b/i.test(createRole[2]);
+      role.superuser = /\bsuperuser\b/i.test(createRole[2]) && !/\bnosuperuser\b/i.test(createRole[2]);
+      role.source = compact;
       continue;
     }
 
     const alterRole = compact.match(/alter\s+(?:role|user)\s+([\w".]+)([^]*)$/i);
-    if (alterRole && /\b(?:no)?bypassrls\b/i.test(alterRole[2])) {
-      const name = normalizeIdentifier(alterRole[1]);
-      roles.set(name, {
-        name,
-        bypassRls: !/\bnobypassrls\b/i.test(alterRole[2]),
-        source: compact
-      });
+    if (alterRole && /\b(?:no)?(?:bypassrls|superuser)\b/i.test(alterRole[2])) {
+      const role = ensureRole(alterRole[1]);
+      if (/\bnobypassrls\b/i.test(alterRole[2])) role.bypassRls = false;
+      else if (/\bbypassrls\b/i.test(alterRole[2])) role.bypassRls = true;
+      if (/\bnosuperuser\b/i.test(alterRole[2])) role.superuser = false;
+      else if (/\bsuperuser\b/i.test(alterRole[2])) role.superuser = true;
+      role.source = compact;
       continue;
     }
 
@@ -495,11 +501,12 @@ function runRules(model, rawSql) {
     }
   }
 
-  for (const role of model.roles.filter((item) => item.bypassRls)) {
+  for (const role of model.roles.filter((item) => item.bypassRls || item.superuser)) {
+    const attributes = [role.superuser && 'SUPERUSER', role.bypassRls && 'BYPASSRLS'].filter(Boolean);
     findings.push(finding(
       'ROLE-001', 'critical', 'Database role can bypass every RLS policy.', role.name,
-      `Role ${role.name} has the BYPASSRLS attribute. Queries executed as this role ignore row-level security policies on every table.`,
-      `ALTER ROLE ${role.name} NOBYPASSRLS;`
+      `Role ${role.name} has ${attributes.join(' and ')}. Queries executed as this role can ignore row-level security policies on every table.`,
+      `ALTER ROLE ${role.name} NOSUPERUSER NOBYPASSRLS;`
     ));
   }
 
@@ -545,7 +552,7 @@ export function scanSql(sql, source = 'pasted SQL') {
   for (const item of findings) counts[item.severity] += 1;
 
   return {
-    version: '0.4.0',
+    version: '0.4.1',
     source,
     scannedAt: new Date().toISOString(),
     score: Math.max(0, 100 - penalty),

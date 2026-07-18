@@ -102,6 +102,23 @@ test('detects and reconstructs role-level RLS bypass state', () => {
   assert.ok(!dropped.includes('ROLE-001'));
 });
 
+test('tracks SUPERUSER independently from BYPASSRLS', () => {
+  const result = scanSql(`
+    create role app_admin superuser nobypassrls;
+    alter role app_admin bypassrls;
+    alter role app_admin nosuperuser;
+  `);
+  const finding = result.findings.find((item) => item.ruleId === 'ROLE-001');
+  assert.match(finding?.evidence || '', /BYPASSRLS/);
+  assert.doesNotMatch(finding?.evidence || '', /SUPERUSER/);
+
+  const hardened = ids(`
+    alter user app_admin with superuser bypassrls;
+    alter user app_admin with nosuperuser nobypassrls;
+  `);
+  assert.ok(!hardened.includes('ROLE-001'));
+});
+
 test('detects storage writes that are not bucket scoped', () => {
   const findings = ids(`
     create policy upload_any_bucket on storage.objects for insert to authenticated

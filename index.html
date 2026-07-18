@@ -143,7 +143,7 @@
         <tr><td>RLS-007</td><td>Policies with no row condition (defaults to <code>TRUE</code>)</td><td>High / Critical</td></tr>
         <tr><td>STORAGE-001</td><td>Storage write policies without a <code>bucket_id</code> boundary</td><td>High</td></tr>
         <tr><td>GRANT-001</td><td>Write privileges granted to <code>anon</code>/<code>public</code></td><td>High</td></tr>
-        <tr><td>ROLE-001</td><td>Database roles with the <code>BYPASSRLS</code> attribute</td><td>Critical</td></tr>
+        <tr><td>ROLE-001</td><td>Database roles with <code>SUPERUSER</code> or <code>BYPASSRLS</code></td><td>Critical</td></tr>
         <tr><td>FUNC-001</td><td><code>SECURITY DEFINER</code> functions with unpinned search_path</td><td>High</td></tr>
         <tr><td>VIEW-001</td><td>Views without <code>security_invoker</code> (RLS bypass)</td><td>High</td></tr>
         <tr><td>SECRET-001</td><td>Service keys / connection strings pasted into SQL</td><td>Critical</td></tr>
