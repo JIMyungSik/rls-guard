@@ -137,6 +137,7 @@ function extractModel(sql) {
   const statements = splitStatements(stripComments(sql));
   const tables = new Map();
   const policies = new Map();
+  const roles = new Map();
   let grants = [];
   const functions = new Map();
   const views = new Map();
@@ -272,6 +273,34 @@ function extractModel(sql) {
       continue;
     }
 
+    const dropRole = compact.match(/drop\s+(?:role|user)\s+(?:if\s+exists\s+)?([\w".]+)/i);
+    if (dropRole) {
+      roles.delete(normalizeIdentifier(dropRole[1]));
+      continue;
+    }
+
+    const createRole = compact.match(/create\s+(?:role|user)\s+([\w".]+)([^]*)$/i);
+    if (createRole) {
+      const name = normalizeIdentifier(createRole[1]);
+      roles.set(name, {
+        name,
+        bypassRls: /\bbypassrls\b/i.test(createRole[2]) && !/\bnobypassrls\b/i.test(createRole[2]),
+        source: compact
+      });
+      continue;
+    }
+
+    const alterRole = compact.match(/alter\s+(?:role|user)\s+([\w".]+)([^]*)$/i);
+    if (alterRole && /\b(?:no)?bypassrls\b/i.test(alterRole[2])) {
+      const name = normalizeIdentifier(alterRole[1]);
+      roles.set(name, {
+        name,
+        bypassRls: !/\bnobypassrls\b/i.test(alterRole[2]),
+        source: compact
+      });
+      continue;
+    }
+
     const dropFunction = compact.match(/drop\s+function\s+(?:if\s+exists\s+)?([\w".]+)\s*(?:\([^)]*\))?/i);
     if (dropFunction) {
       functions.delete(qualifyTable(dropFunction[1]));
@@ -358,6 +387,7 @@ function extractModel(sql) {
     statements,
     tables: [...tables.values()],
     policies: [...policies.values()],
+    roles: [...roles.values()],
     grants: grants.filter((grant) => grant.roles.length && grant.privileges.length),
     functions: [...functions.values()],
     views: [...views.values()]
@@ -465,6 +495,14 @@ function runRules(model, rawSql) {
     }
   }
 
+  for (const role of model.roles.filter((item) => item.bypassRls)) {
+    findings.push(finding(
+      'ROLE-001', 'critical', 'Database role can bypass every RLS policy.', role.name,
+      `Role ${role.name} has the BYPASSRLS attribute. Queries executed as this role ignore row-level security policies on every table.`,
+      `ALTER ROLE ${role.name} NOBYPASSRLS;`
+    ));
+  }
+
   for (const fn of model.functions.filter((item) => item.securityDefiner && !item.searchPathFixed)) {
     findings.push(finding(
       'FUNC-001', 'high', 'SECURITY DEFINER function without a pinned search_path.', fn.name,
@@ -507,7 +545,7 @@ export function scanSql(sql, source = 'pasted SQL') {
   for (const item of findings) counts[item.severity] += 1;
 
   return {
-    version: '0.3.0',
+    version: '0.4.0',
     source,
     scannedAt: new Date().toISOString(),
     score: Math.max(0, 100 - penalty),

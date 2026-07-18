@@ -83,6 +83,25 @@ test('keeps unrevoked privileges and roles in the final grant state', () => {
   assert.doesNotMatch(grantFindings[0].evidence, /insert/i);
 });
 
+test('detects and reconstructs role-level RLS bypass state', () => {
+  const unsafe = scanSql(`alter role app_worker with bypassrls;`);
+  const finding = unsafe.findings.find((item) => item.ruleId === 'ROLE-001');
+  assert.equal(finding?.severity, 'critical');
+  assert.equal(finding?.target, 'app_worker');
+
+  const hardened = ids(`
+    create role app_worker bypassrls;
+    alter role app_worker with nobypassrls;
+  `);
+  assert.ok(!hardened.includes('ROLE-001'));
+
+  const dropped = ids(`
+    create user temporary_worker with bypassrls;
+    drop user if exists temporary_worker;
+  `);
+  assert.ok(!dropped.includes('ROLE-001'));
+});
+
 test('detects storage writes that are not bucket scoped', () => {
   const findings = ids(`
     create policy upload_any_bucket on storage.objects for insert to authenticated

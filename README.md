@@ -14,7 +14,7 @@ Paste your `supabase/migrations/*.sql` and get findings in milliseconds — no s
 
 ![Scan results with severity badges and fix SQL](docs/demo-results.png)
 
-Most Supabase data leaks come from the same handful of misconfigurations: tables exposed without RLS, `USING (true)` policies, INSERT policies without `WITH CHECK`, views that silently bypass RLS. RLS Guard reconstructs the final state of pasted migrations—including policy, grant, function, and view changes—and scans for 12 of these classes, with fix SQL for each finding.
+Most Supabase data leaks come from the same handful of misconfigurations: tables exposed without RLS, `USING (true)` policies, INSERT policies without `WITH CHECK`, roles that bypass RLS, and views that silently bypass RLS. RLS Guard reconstructs the final state of pasted migrations—including policy, grant, role, function, and view changes—and scans for 13 of these classes, with fix SQL for each finding.
 
 ## Why client-side matters
 
@@ -33,6 +33,7 @@ A security tool that uploads your schema is itself a security risk. RLS Guard ru
 | RLS-007 | Policy omits every row condition (PostgreSQL defaults it to TRUE) | High/Critical |
 | STORAGE-001 | Storage write policy is not constrained by `bucket_id` | High |
 | GRANT-001 | Write privileges granted to `anon`/`public` | High |
+| ROLE-001 | Database roles with the `BYPASSRLS` attribute | Critical |
 | FUNC-001 | `SECURITY DEFINER` functions with unpinned search_path | High |
 | VIEW-001 | Views without `security_invoker` (RLS bypass) | High |
 | SECRET-001 | Service keys / connection strings inside SQL | Critical |
@@ -74,7 +75,7 @@ Found a false positive or a rule idea? [Open an issue](../../issues) — feedbac
 ## Roadmap
 
 - [x] CI-ready CLI with severity thresholds and JSON output
-- [x] Migration state reconstruction for policy, grant, function, and view changes
+- [x] Migration state reconstruction for policy, grant, role, function, and view changes
 - [x] Storage object write-policy bucket checks
 
 If any of these would be useful to you, a ⭐ and an issue telling me which one helps prioritize.
