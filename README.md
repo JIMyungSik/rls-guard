@@ -80,6 +80,8 @@ Regex-based static analysis on a lightweight SQL splitter — it does not implem
 
 Found a false positive or a rule idea? [Open an issue](../../issues) — feedback directly shapes the ruleset.
 
+Never post keys, connection strings, customer data, or private migrations in an issue. Reduce rule feedback to synthetic SQL, or use the [security policy](SECURITY.md) for a private product vulnerability report.
+
 ## Roadmap
 
 - [x] CI-ready CLI with severity thresholds and JSON output

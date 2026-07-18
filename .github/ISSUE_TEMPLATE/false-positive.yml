@@ -1,0 +1,45 @@
+name: False positive or false negative
+description: Report a rule result using synthetic, non-sensitive SQL
+title: "[Rule]: "
+labels: ["rule-feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Never paste secrets, customer data, or private production migrations. Reduce the case to synthetic SQL first.
+  - type: input
+    id: version
+    attributes:
+      label: RLS Guard version
+      placeholder: 0.6.1
+    validations:
+      required: true
+  - type: dropdown
+    id: result
+    attributes:
+      label: Result type
+      options:
+        - False positive
+        - False negative
+    validations:
+      required: true
+  - type: textarea
+    id: sql
+    attributes:
+      label: Minimal synthetic SQL
+      render: sql
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected and actual result
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety
+    attributes:
+      label: Safety check
+      options:
+        - label: I removed all secrets, customer data, and private identifiers.
+          required: true

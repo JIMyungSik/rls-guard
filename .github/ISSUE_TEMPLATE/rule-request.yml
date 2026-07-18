@@ -1,0 +1,32 @@
+name: Rule request
+description: Propose a repeatable Supabase/PostgreSQL RLS risk pattern
+title: "[Rule request]: "
+labels: ["rule-request"]
+body:
+  - type: textarea
+    id: risk
+    attributes:
+      label: Risk pattern
+      description: Explain the misconfiguration and why static detection is useful.
+    validations:
+      required: true
+  - type: textarea
+    id: vulnerable
+    attributes:
+      label: Vulnerable synthetic SQL
+      render: sql
+    validations:
+      required: true
+  - type: textarea
+    id: fixed
+    attributes:
+      label: Safer synthetic SQL
+      render: sql
+    validations:
+      required: true
+  - type: textarea
+    id: references
+    attributes:
+      label: Primary documentation or references
+    validations:
+      required: true
