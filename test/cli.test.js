@@ -58,6 +58,31 @@ test('CLI supports stricter severity thresholds and validates options', () => {
   assert.match(invalid.stderr, /critical, high, medium, or low/);
 });
 
+test('CLI ignores a reviewed rule in reports and the exit code', () => {
+  const result = run(['--ignore-rule', 'RLS-001', '--json'], 'create table public.exposed (id bigint);');
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  const report = JSON.parse(result.stdout);
+  assert.deepEqual(report.ignoredRules, ['RLS-001']);
+  assert.equal(report.summary.ignored, 1);
+  assert.equal(report.summary.critical, 0);
+  assert.equal(report.score, 100);
+  assert.deepEqual(report.findings, []);
+});
+
+test('CLI validates ignored rule IDs and supports repeated exceptions', () => {
+  const invalid = run(['--ignore-rule', 'RLS-999'], 'select 1;');
+  assert.equal(invalid.status, 2);
+  assert.match(invalid.stderr, /RLS-001/);
+
+  const result = run(['--ignore-rule', 'rls-001', '--ignore-rule', 'SECRET-001', '--format', 'sarif'],
+    'create table public.exposed (id bigint);');
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  const sarif = JSON.parse(result.stdout);
+  assert.deepEqual(sarif.runs[0].results, []);
+  assert.deepEqual(sarif.runs[0].invocations[0].properties.ignoredRules, ['RLS-001', 'SECRET-001']);
+  assert.equal(sarif.runs[0].invocations[0].properties.ignoredFindingCount, 1);
+});
+
 test('CLI emits a Markdown audit report with actionable checkboxes', () => {
   const result = run(['--format', 'markdown'], 'create table public.exposed (id bigint);');
   assert.equal(result.status, 1, `${result.stdout}\n${result.stderr}`);
@@ -87,7 +112,7 @@ test('CLI emits valid SARIF with mapped levels and remediation metadata', () => 
   const sarif = JSON.parse(result.stdout);
   assert.equal(sarif.version, '2.1.0');
   assert.equal(sarif.runs[0].tool.driver.name, 'RLS Guard');
-  assert.equal(sarif.runs[0].tool.driver.version, '0.6.1');
+  assert.equal(sarif.runs[0].tool.driver.version, '0.7.0');
   assert.equal(sarif.runs[0].results[0].ruleId, 'RLS-001');
   assert.equal(sarif.runs[0].results[0].level, 'error');
   assert.match(sarif.runs[0].results[0].properties.remediation, /ENABLE ROW LEVEL SECURITY/);

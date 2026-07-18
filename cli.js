@@ -2,12 +2,13 @@
 
 import { readFile, writeFile } from 'node:fs/promises';
 import process from 'node:process';
-import { scanSql } from './scanner.js';
+import { RULE_IDS, scanSql } from './scanner.js';
 
 const SEVERITY_RANK = { critical: 4, high: 3, medium: 2, low: 1 };
+const SEVERITY_PENALTY = { critical: 30, high: 18, medium: 8, low: 3 };
 
 function usage() {
-  return `RLS Guard 0.6.1
+  return `RLS Guard 0.7.0
 
 Usage:
   node cli.js [options] <migration.sql> [...more.sql]
@@ -19,12 +20,14 @@ Options:
   --format <type>       Report format: text, json, markdown, sarif (default: text)
   --json                Alias for --format json
   --output <path>       Write the report to a file instead of stdout
+  --ignore-rule <id>    Exclude a reviewed rule from reports and the exit code
+                        Repeat for multiple rules (example: --ignore-rule RLS-002)
   --help                Show this help
 `;
 }
 
 function parseArgs(argv) {
-  const options = { files: [], failOn: 'critical', format: 'text', output: null };
+  const options = { files: [], failOn: 'critical', format: 'text', output: null, ignoredRules: [] };
   for (let i = 0; i < argv.length; i += 1) {
     const arg = argv[i];
     if (arg === '--help' || arg === '-h') return { ...options, help: true };
@@ -50,6 +53,13 @@ function parseArgs(argv) {
       i += 1;
       continue;
     }
+    if (arg === '--ignore-rule') {
+      const ruleId = argv[i + 1]?.toUpperCase();
+      if (!RULE_IDS.includes(ruleId)) throw new Error(`--ignore-rule must be one of: ${RULE_IDS.join(', ')}`);
+      if (!options.ignoredRules.includes(ruleId)) options.ignoredRules.push(ruleId);
+      i += 1;
+      continue;
+    }
     if (arg.startsWith('-')) throw new Error(`Unknown option: ${arg}`);
     options.files.push(arg);
   }
@@ -68,6 +78,7 @@ function textReport(report) {
     `Scanned ${report.summary.tables} table(s), ${report.summary.policies} policy/policies`,
     `Critical ${report.summary.critical} · High ${report.summary.high} · Medium ${report.summary.medium} · Low ${report.summary.low}`
   ];
+  if (report.ignoredRules?.length) lines.push(`Ignored ${report.summary.ignored} finding(s) from reviewed rule(s): ${report.ignoredRules.join(', ')}`);
   for (const finding of report.findings) {
     lines.push('', `[${finding.severity.toUpperCase()}] ${finding.ruleId} ${finding.title}`, `  ${finding.target}`, `  Fix: ${finding.remediation}`);
   }
@@ -88,6 +99,7 @@ export function markdownReport(report) {
     `- **Source:** ${markdownCell(report.source)}`,
     `- **Generated:** ${generated}`,
     `- **RLS Guard:** ${report.version}`,
+    ...(report.ignoredRules?.length ? [`- **Ignored reviewed rules:** ${report.ignoredRules.join(', ')} (${report.summary.ignored} finding(s))`] : []),
     '',
     '## Summary',
     '',
@@ -124,6 +136,23 @@ export function markdownReport(report) {
   return lines.join('\n');
 }
 
+function applyIgnoredRules(report, ignoredRules) {
+  if (!ignoredRules.length) return report;
+  const ignored = new Set(ignoredRules);
+  const findings = report.findings.filter((finding) => !ignored.has(finding.ruleId));
+  const ignoredCount = report.findings.length - findings.length;
+  const counts = { critical: 0, high: 0, medium: 0, low: 0 };
+  for (const finding of findings) counts[finding.severity] += 1;
+  const penalty = findings.reduce((sum, finding) => sum + SEVERITY_PENALTY[finding.severity], 0);
+  return {
+    ...report,
+    score: Math.max(0, 100 - penalty),
+    summary: { ...report.summary, ...counts, ignored: ignoredCount },
+    findings,
+    ignoredRules
+  };
+}
+
 const SARIF_LEVEL = { critical: 'error', high: 'error', medium: 'warning', low: 'note' };
 
 export function sarifReport(report) {
@@ -151,7 +180,13 @@ export function sarifReport(report) {
         } : {}),
         properties: { severity: finding.severity, confidence: finding.confidence, remediation: finding.remediation }
       })),
-      invocations: [{ executionSuccessful: true }]
+      invocations: [{
+        executionSuccessful: true,
+        ...(report.ignoredRules?.length ? { properties: {
+          ignoredRules: report.ignoredRules,
+          ignoredFindingCount: report.summary.ignored
+        } } : {})
+      }]
     }]
   };
 }
@@ -191,7 +226,7 @@ async function main() {
     return;
   }
 
-  const report = scanSql(sql, source);
+  let report = scanSql(sql, source);
   if (sourceRanges.length) {
     report.findings = report.findings.map((finding) => {
       const combinedLine = finding.location?.startLine;
@@ -199,6 +234,7 @@ async function main() {
       return range ? { ...finding, location: { uri: range.uri, startLine: combinedLine - range.startLine + 1 } } : finding;
     });
   }
+  report = applyIgnoredRules(report, options.ignoredRules);
   const rendered = options.format === 'json'
     ? JSON.stringify(report, null, 2)
     : options.format === 'markdown'

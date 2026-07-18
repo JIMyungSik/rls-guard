@@ -64,14 +64,15 @@ node cli.js --fail-on high supabase/migrations/*.sql
 cat migration.sql | node cli.js --json
 node cli.js --format markdown --output rls-guard-report.md supabase/migrations/*.sql
 node cli.js --format sarif --output rls-guard.sarif supabase/migrations/*.sql
+node cli.js --ignore-rule RLS-002 --fail-on high supabase/migrations/*.sql
 ```
 
-`--format` accepts `text`, `json`, `markdown`, or GitHub Code Scanning-compatible `sarif`. `--output` writes a review-ready artifact for pull requests and audit records. `--fail-on` accepts `critical`, `high`, `medium`, or `low`. Findings never include matched secret values.
+`--format` accepts `text`, `json`, `markdown`, or GitHub Code Scanning-compatible `sarif`. `--output` writes a review-ready artifact for pull requests and audit records. `--fail-on` accepts `critical`, `high`, `medium`, or `low`. Repeat `--ignore-rule RULE-ID` only for rules your team has reviewed and accepted; ignored findings are removed from the report and exit-code decision, and the report records the ignored rule IDs and count. Findings never include matched secret values.
 
 Run the pinned public package without installing it globally:
 
 ```bash
-npx @carjms/rls-guard@0.6.1 --fail-on high supabase/migrations/*.sql
+npx @carjms/rls-guard@0.7.0 --fail-on high supabase/migrations/*.sql
 ```
 
 ## Limitations (honest ones)
@@ -88,6 +89,7 @@ Never post keys, connection strings, customer data, or private migrations in an 
 - [x] Migration state reconstruction for policy, grant, role, function, and view changes
 - [x] Storage object write-policy bucket checks
 - [x] SARIF output for GitHub Code Scanning
+- [x] Auditable per-rule exceptions for project-specific CI adoption
 
 If any of these would be useful to you, a ⭐ and an issue telling me which one helps prioritize.
 

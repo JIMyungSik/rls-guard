@@ -2,6 +2,10 @@
 // Ported from rls-guard 0.1 CLI. Runs entirely client-side.
 
 const SEVERITY_WEIGHT = { critical: 30, high: 18, medium: 8, low: 3 };
+export const RULE_IDS = Object.freeze([
+  'RLS-001', 'RLS-002', 'RLS-003', 'RLS-004', 'RLS-005', 'RLS-006', 'RLS-007',
+  'STORAGE-001', 'GRANT-001', 'ROLE-001', 'FUNC-001', 'VIEW-001', 'SECRET-001'
+]);
 
 function normalizeIdentifier(value) {
   return value.replaceAll('"', '').trim().toLowerCase();
@@ -598,7 +602,7 @@ export function scanSql(sql, source = 'pasted SQL') {
   for (const item of findings) counts[item.severity] += 1;
 
   return {
-    version: '0.6.1',
+    version: '0.7.0',
     source,
     scannedAt: new Date().toISOString(),
     score: Math.max(0, 100 - penalty),

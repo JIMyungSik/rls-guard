@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.0 - 2026-07-19
+
+- Add repeatable `--ignore-rule RULE-ID` exceptions for reviewed project-specific findings.
+- Apply exceptions consistently to text, JSON, Markdown, SARIF, score, summaries, and CI exit codes.
+- Record ignored rule IDs and the number of excluded findings in generated reports.
+
 ## 0.6.1 - 2026-07-19
 
 - Add repository-relative file and line locations to SARIF findings.
