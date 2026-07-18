@@ -23,6 +23,11 @@
   .logo span { color: var(--accent); }
   nav a { color: var(--muted); margin-left: 18px; font-size: 14px; }
   nav a:hover { color: var(--text); }
+  nav { display: flex; align-items: center; gap: 18px; }
+  nav a { margin-left: 0; }
+  .lang-toggle { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .lang-toggle button { border: 0; background: transparent; color: var(--muted); padding: 6px 10px; cursor: pointer; font-size: 12px; }
+  .lang-toggle button.active { background: var(--accent); color: #04110a; font-weight: 750; }
   .hero { text-align: center; padding: 56px 0 12px; }
   .hero h1 { font-size: clamp(28px, 5vw, 44px); line-height: 1.15; letter-spacing: -1px; }
   .hero h1 em { color: var(--accent); font-style: normal; }
@@ -94,32 +99,35 @@
   <div class="wrap" style="display:flex;align-items:center;justify-content:space-between;">
     <div class="logo">🛡 RLS<span>Guard</span></div>
     <nav>
-      <a href="#rules">Rules</a>
+      <a href="#rules" data-i18n="navRules">Rules</a>
       <a href="#ci">CI</a>
       <a href="https://github.com/JIMyungSik/rls-guard" target="_blank" rel="noopener">GitHub</a>
+      <span class="lang-toggle" aria-label="Language">
+        <button type="button" data-lang="ko">한국어</button><button type="button" data-lang="en">EN</button>
+      </span>
     </nav>
   </div>
 </header>
 
 <section class="hero wrap">
-  <h1>Is your Supabase database<br><em>actually</em> locked down?</h1>
-  <p>Paste your migration SQL below and get an instant Row Level Security audit — missing RLS, always-true policies, leaky views, dangerous grants, and the exact SQL to fix each one.</p>
-  <div class="privacy">🔒 Runs entirely in this browser tab — your SQL is never uploaded</div>
+  <h1 data-i18n-html="heroTitle">Is your Supabase database<br><em>actually</em> locked down?</h1>
+  <p data-i18n="heroDescription">Paste your migration SQL below and get an instant Row Level Security audit — missing RLS, always-true policies, leaky views, dangerous grants, and the exact SQL to fix each one.</p>
+  <div class="privacy" data-i18n="privacy">🔒 Runs entirely in this browser tab — your SQL is never uploaded</div>
 </section>
 
 <main class="wrap">
   <div class="editor">
     <div class="editor-bar">
-      <span class="hint">supabase/migrations/*.sql — paste one file or all of them</span>
+      <span class="hint" data-i18n="editorHint">supabase/migrations/*.sql — paste one file or all of them</span>
       <span class="samples">
-        <button id="load-vuln">Load vulnerable example</button>
-        <button id="load-safe">Load safe example</button>
+        <button id="load-vuln" data-i18n="loadVulnerable">Load vulnerable example</button>
+        <button id="load-safe" data-i18n="loadSafe">Load safe example</button>
       </span>
     </div>
     <textarea id="sql" spellcheck="false" placeholder="create table public.orders ( ... );&#10;alter table public.orders enable row level security;&#10;create policy ..."></textarea>
     <div class="actions">
-      <button class="scan-btn" id="scan">Scan my SQL →</button>
-      <span class="note">13 rules · migration-aware · free · no signup</span>
+      <button class="scan-btn" id="scan" data-i18n="scanButton">Scan my SQL →</button>
+      <span class="note" data-i18n="scanNote">13 rules · migration-aware · free · no signup</span>
     </div>
   </div>
 
@@ -128,11 +136,11 @@
 
 <section class="rules-section" id="rules">
   <div class="wrap">
-    <h2>What it checks</h2>
-    <p>The same classes of misconfiguration behind most real-world Supabase data leaks.</p>
+    <h2 data-i18n="rulesTitle">What it checks</h2>
+    <p data-i18n="rulesDescription">The same classes of misconfiguration behind most real-world Supabase data leaks.</p>
     <div class="table-scroll">
     <table>
-      <thead><tr><th>Rule</th><th>Detects</th><th>Severity</th></tr></thead>
+      <thead><tr><th data-i18n="rule">Rule</th><th data-i18n="detects">Detects</th><th data-i18n="severity">Severity</th></tr></thead>
       <tbody>
         <tr><td>RLS-001</td><td>Table in an exposed schema without RLS enabled</td><td>Critical</td></tr>
         <tr><td>RLS-002</td><td>RLS enabled but zero policies (silent lockout)</td><td>Medium</td></tr>
@@ -156,14 +164,14 @@
 <section class="ci-section" id="ci">
   <div class="wrap ci-grid">
     <div>
-      <h2>Fail unsafe migrations in CI</h2>
-      <p>The browser scanner and CLI use the same engine. Scan ordered migration files, choose a severity threshold, and emit JSON for another tool to consume.</p>
+      <h2 data-i18n="ciTitle">Fail unsafe migrations in CI</h2>
+      <p data-i18n="ciDescription">The browser scanner and CLI use the same engine. Scan ordered migration files, choose a severity threshold, and emit JSON for another tool to consume.</p>
       <ul class="ci-points">
-        <li><strong>Exit 1</strong> at or above your chosen severity</li>
-        <li><strong>Migration-aware</strong> across ALTER, DROP, and REVOKE</li>
-        <li><strong>Secret-safe reports</strong> never echo matched key values</li>
+        <li data-i18n-html="ciPoint1"><strong>Exit 1</strong> at or above your chosen severity</li>
+        <li data-i18n-html="ciPoint2"><strong>Migration-aware</strong> across ALTER, DROP, and REVOKE</li>
+        <li data-i18n-html="ciPoint3"><strong>Secret-safe reports</strong> never echo matched key values</li>
       </ul>
-      <a class="secondary-btn" href="https://github.com/JIMyungSik/rls-guard#use-in-ci" target="_blank" rel="noopener">CLI setup on GitHub →</a>
+      <a class="secondary-btn" href="https://github.com/JIMyungSik/rls-guard#use-in-ci" target="_blank" rel="noopener" data-i18n="cliSetup">CLI setup on GitHub →</a>
     </div>
     <pre class="ci-code"><code># Fail on Critical findings (default)
 node cli.js supabase/migrations/*.sql
@@ -180,14 +188,75 @@ node cli.js --format markdown --output rls-report.md supabase/migrations/*.sql</
 
 <footer>
   <div class="wrap">
-    <div>Built by <a href="https://github.com/JIMyungSik" target="_blank" rel="noopener">@JIMyungSik</a> · Open source on <a href="https://github.com/JIMyungSik/rls-guard" target="_blank" rel="noopener">GitHub</a> — a ⭐ helps more devs find this.</div>
-    <div class="disclaimer">A clean scan is not a security guarantee. This static analysis doesn't replace a full audit or live access testing. Nothing you paste is uploaded, stored, or logged — check the network tab.</div>
-    <div class="kr">🇰🇷 한국 개발자시라면 — 이 도구는 AI 에이전트가 72시간 챌린지 중에 만들었습니다. 제작→배포→수익화 전 과정 기록: <a href="https://ai-72h-playbook.vercel.app">72시간 플레이북 보기 →</a></div>
+    <div data-i18n-html="footerBuilt">Built by <a href="https://github.com/JIMyungSik" target="_blank" rel="noopener">@JIMyungSik</a> · Open source on <a href="https://github.com/JIMyungSik/rls-guard" target="_blank" rel="noopener">GitHub</a> — a ⭐ helps more devs find this.</div>
+    <div class="disclaimer" data-i18n="disclaimer">A clean scan is not a security guarantee. This static analysis doesn't replace a full audit or live access testing. Nothing you paste is uploaded, stored, or logged — check the network tab.</div>
+    <div class="kr" data-i18n-html="playbook">🇰🇷 한국 개발자시라면 — 이 도구는 AI 에이전트가 72시간 챌린지 중에 만들었습니다. 제작→배포→수익화 전 과정 기록: <a href="https://ai-72h-playbook.vercel.app">72시간 플레이북 보기 →</a></div>
   </div>
 </footer>
 
 <script type="module">
 import { scanSql } from './scanner.js';
+
+const translations = {
+  en: {
+    title: 'RLS Guard — Free Supabase RLS Security Scanner', navRules: 'Rules',
+    heroTitle: 'Is your Supabase database<br><em>actually</em> locked down?',
+    heroDescription: 'Paste your migration SQL below and get an instant Row Level Security audit — missing RLS, always-true policies, leaky views, dangerous grants, and the exact SQL to fix each one.',
+    privacy: '🔒 Runs entirely in this browser tab — your SQL is never uploaded', editorHint: 'supabase/migrations/*.sql — paste one file or all of them',
+    loadVulnerable: 'Load vulnerable example', loadSafe: 'Load safe example', scanButton: 'Scan my SQL →', scanNote: '13 rules · migration-aware · free · no signup',
+    rulesTitle: 'What it checks', rulesDescription: 'The same classes of misconfiguration behind most real-world Supabase data leaks.', rule: 'Rule', detects: 'Detects', severity: 'Severity',
+    ciTitle: 'Fail unsafe migrations in CI', ciDescription: 'The browser scanner and CLI use the same engine. Scan ordered migration files, choose a severity threshold, and emit JSON for another tool to consume.',
+    ciPoint1: '<strong>Exit 1</strong> at or above your chosen severity', ciPoint2: '<strong>Migration-aware</strong> across ALTER, DROP, and REVOKE', ciPoint3: '<strong>Secret-safe reports</strong> never echo matched key values',
+    cliSetup: 'CLI setup on GitHub →', footerBuilt: 'Built by <a href="https://github.com/JIMyungSik" target="_blank" rel="noopener">@JIMyungSik</a> · Open source on <a href="https://github.com/JIMyungSik/rls-guard" target="_blank" rel="noopener">GitHub</a> — a ⭐ helps more devs find this.',
+    disclaimer: "A clean scan is not a security guarantee. This static analysis doesn't replace a full audit or live access testing. Nothing you paste is uploaded, stored, or logged — check the network tab.",
+    playbook: '🇰🇷 한국 개발자시라면 — 이 도구는 AI 에이전트가 72시간 챌린지 중에 만들었습니다. 제작→배포→수익화 전 과정 기록: <a href="https://ai-72h-playbook.vercel.app">72시간 플레이북 보기 →</a>',
+    placeholder: 'create table public.orders ( ... );\nalter table public.orders enable row level security;\ncreate policy ...',
+    labels: ['Critical', 'High', 'Medium', 'Tables', 'Policies'], copy: 'copy', copied: 'copied ✓', clean: '✓ No findings',
+    cleanSummary: (r) => `Scanned ${r.summary.tables} table(s) and ${r.summary.policies} policy(ies) against 13 rules.`,
+    verdict: (r) => !r.findings.length ? 'No rule-based risks found in the SQL you pasted. Nice — but remember a clean scan is not a full audit.' : r.summary.critical ? `${r.summary.critical} critical issue${r.summary.critical > 1 ? 's' : ''} found. Fix the criticals first — each finding below includes remediation SQL.` : 'No criticals, but the findings below can still become data leaks. Each one includes suggested remediation SQL.'
+  },
+  ko: {
+    title: 'RLS Guard — 무료 Supabase RLS 보안 스캐너', navRules: '검사 규칙',
+    heroTitle: 'Supabase 데이터베이스,<br><em>정말로</em> 안전하게 잠겨 있나요?',
+    heroDescription: '마이그레이션 SQL을 붙여 넣으면 RLS 누락, 항상 참인 정책, 노출된 뷰, 위험한 권한을 즉시 검사하고 항목별 수정 SQL까지 제공합니다.',
+    privacy: '🔒 이 브라우저 탭에서만 실행됩니다 — SQL은 서버로 전송되지 않습니다', editorHint: 'supabase/migrations/*.sql — 파일 하나 또는 전체 내용을 붙여 넣으세요',
+    loadVulnerable: '취약한 예제 불러오기', loadSafe: '안전한 예제 불러오기', scanButton: '내 SQL 검사하기 →', scanNote: '13개 규칙 · 마이그레이션 인식 · 무료 · 가입 불필요',
+    rulesTitle: '무엇을 검사하나요?', rulesDescription: '실제 Supabase 데이터 유출에서 자주 발견되는 설정 오류를 검사합니다.', rule: '규칙', detects: '탐지 항목', severity: '심각도',
+    ciTitle: '안전하지 않은 마이그레이션을 CI에서 차단', ciDescription: '웹 스캐너와 CLI는 같은 엔진을 사용합니다. 순서대로 마이그레이션 파일을 검사하고, 실패 기준 심각도를 정하고, 다른 도구가 읽을 JSON을 생성할 수 있습니다.',
+    ciPoint1: '선택한 심각도 이상이면 <strong>종료 코드 1</strong>', ciPoint2: 'ALTER, DROP, REVOKE를 추적하는 <strong>마이그레이션 인식</strong>', ciPoint3: '발견된 키 값을 노출하지 않는 <strong>비밀정보 안전 보고서</strong>',
+    cliSetup: 'GitHub에서 CLI 설정 보기 →', footerBuilt: '<a href="https://github.com/JIMyungSik" target="_blank" rel="noopener">@JIMyungSik</a> 제작 · <a href="https://github.com/JIMyungSik/rls-guard" target="_blank" rel="noopener">GitHub</a> 오픈소스 — ⭐로 더 많은 개발자에게 알려주세요.',
+    disclaimer: '검사 통과가 보안을 보장하지는 않습니다. 정적 분석은 전체 보안 감사나 실제 접근 테스트를 대체하지 않습니다. 붙여 넣은 내용은 업로드·저장·기록되지 않습니다.',
+    playbook: '🇰🇷 이 도구는 AI 에이전트와 함께 72시간 챌린지 중에 만들었습니다. 제작→배포→수익화 전 과정 기록: <a href="https://ai-72h-playbook.vercel.app">72시간 플레이북 보기 →</a>',
+    placeholder: 'create table public.orders ( ... );\nalter table public.orders enable row level security;\ncreate policy ...',
+    labels: ['치명적', '높음', '중간', '테이블', '정책'], copy: '복사', copied: '복사됨 ✓', clean: '✓ 발견된 문제 없음',
+    cleanSummary: (r) => `13개 규칙으로 테이블 ${r.summary.tables}개와 정책 ${r.summary.policies}개를 검사했습니다.`,
+    verdict: (r) => !r.findings.length ? '붙여 넣은 SQL에서 규칙 기반 위험을 찾지 못했습니다. 단, 검사 통과가 전체 보안 감사를 대신하지는 않습니다.' : r.summary.critical ? `치명적 문제 ${r.summary.critical}개를 발견했습니다. 아래 수정 SQL을 참고해 치명적 항목부터 해결하세요.` : '치명적 문제는 없지만 조건에 따라 데이터 유출로 이어질 수 있는 항목이 있습니다. 각 항목의 수정 SQL을 확인하세요.'
+  }
+};
+const koreanRuleDescriptions = [
+  '외부 공개 스키마에서 RLS가 활성화되지 않은 테이블', 'RLS는 켜졌지만 정책이 없어 모든 접근이 차단된 상태',
+  'USING (true)처럼 항상 참인 정책 조건', 'WITH CHECK가 없는 INSERT 정책', '어떤 정책에서도 소유자/테넌트 열을 확인하지 않는 상태',
+  'PUBLIC 역할에 적용된 쓰기 정책', '행 조건이 없어 TRUE로 처리되는 정책', 'bucket_id 경계가 없는 Storage 쓰기 정책',
+  'anon/public에 부여된 쓰기 권한', 'SUPERUSER 또는 BYPASSRLS 데이터베이스 역할',
+  'search_path를 고정하지 않은 SECURITY DEFINER 함수', 'security_invoker가 없어 RLS를 우회할 수 있는 뷰',
+  'SQL에 포함된 서비스 키 또는 데이터베이스 연결 문자열'
+];
+const englishRuleDescriptions = [...document.querySelectorAll('#rules tbody tr td:nth-child(2)')].map((cell) => cell.innerHTML);
+
+let lang = localStorage.getItem('rls-guard-lang') || (navigator.language.startsWith('ko') ? 'ko' : 'en');
+function applyLanguage(next) {
+  lang = next; localStorage.setItem('rls-guard-lang', lang); document.documentElement.lang = lang;
+  const t = translations[lang]; document.title = t.title;
+  document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t[el.dataset.i18n]; });
+  document.querySelectorAll('[data-i18n-html]').forEach((el) => { el.innerHTML = t[el.dataset.i18nHtml]; });
+  document.querySelectorAll('[data-lang]').forEach((el) => el.classList.toggle('active', el.dataset.lang === lang));
+  document.querySelectorAll('#rules tbody tr td:nth-child(2)').forEach((cell, index) => {
+    cell.innerHTML = lang === 'ko' ? koreanRuleDescriptions[index] : englishRuleDescriptions[index];
+  });
+  $('#sql').placeholder = t.placeholder;
+  if ($('#sql').value.trim()) run(false);
+}
+document.querySelectorAll('[data-lang]').forEach((button) => { button.onclick = () => applyLanguage(button.dataset.lang); });
 
 const SAMPLE_VULN = `create table public.orders (
   id bigint generated always as identity primary key,
@@ -255,18 +324,13 @@ function ringColor(score) {
   return 'var(--critical)';
 }
 
-function verdictText(r) {
-  if (!r.findings.length) return 'No rule-based risks found in the SQL you pasted. Nice — but remember a clean scan is not a full audit.';
-  const c = r.summary.critical;
-  if (c) return `${c} critical issue${c > 1 ? 's' : ''} found. If this SQL is live, API roles with matching grants may be able to read or write unintended rows. Fix the criticals first — each finding below includes the SQL.`;
-  return 'No criticals, but the findings below can still turn into data leaks under the right conditions. Each one includes suggested fix SQL.';
-}
+function verdictText(r) { return translations[lang].verdict(r); }
 
 function esc(s) {
   return s.replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 }
 
-function run() {
+function run(shouldScroll = true) {
   const sql = $('#sql').value.trim();
   const box = $('#results');
   if (!sql) { box.style.display = 'none'; return; }
@@ -274,6 +338,7 @@ function run() {
   const circumference = 2 * Math.PI * 48;
   const dash = circumference * r.score / 100;
 
+  const t = translations[lang];
   let html = `
   <div class="scorecard">
     <div class="ring">
@@ -285,17 +350,17 @@ function run() {
       <div class="num" style="color:${ringColor(r.score)}">${r.score}</div>
     </div>
     <div class="counts">
-      <div class="count critical"><b>${r.summary.critical}</b>Critical</div>
-      <div class="count high"><b>${r.summary.high}</b>High</div>
-      <div class="count medium"><b>${r.summary.medium}</b>Medium</div>
-      <div class="count"><b>${r.summary.tables}</b>Tables</div>
-      <div class="count"><b>${r.summary.policies}</b>Policies</div>
+      <div class="count critical"><b>${r.summary.critical}</b>${t.labels[0]}</div>
+      <div class="count high"><b>${r.summary.high}</b>${t.labels[1]}</div>
+      <div class="count medium"><b>${r.summary.medium}</b>${t.labels[2]}</div>
+      <div class="count"><b>${r.summary.tables}</b>${t.labels[3]}</div>
+      <div class="count"><b>${r.summary.policies}</b>${t.labels[4]}</div>
     </div>
     <div class="verdict">${verdictText(r)}</div>
   </div>`;
 
   if (!r.findings.length) {
-    html += `<div class="clean"><h3>✓ No findings</h3><p>Scanned ${r.summary.tables} table(s) and ${r.summary.policies} polic(ies) against 13 rules.</p></div>`;
+    html += `<div class="clean"><h3>${t.clean}</h3><p>${t.cleanSummary(r)}</p></div>`;
   } else {
     for (const f of r.findings) {
       html += `
@@ -308,7 +373,7 @@ function run() {
         <div class="f-body">
           <div class="target">→ ${esc(f.target)}</div>
           <div style="margin-top:6px">${esc(f.evidence)}</div>
-          <div class="fix"><button class="copy">copy</button>${esc(f.remediation)}</div>
+          <div class="fix"><button class="copy">${t.copy}</button>${esc(f.remediation)}</div>
         </div>
       </div>`;
     }
@@ -318,13 +383,14 @@ function run() {
   box.style.display = 'block';
   box.querySelectorAll('.copy').forEach((btn) => {
     btn.onclick = () => {
-      navigator.clipboard.writeText(btn.parentElement.textContent.replace(/^copy/, '').trim());
-      btn.textContent = 'copied ✓';
-      setTimeout(() => { btn.textContent = 'copy'; }, 1500);
+      navigator.clipboard.writeText(btn.parentElement.textContent.replace(new RegExp(`^${t.copy}`), '').trim());
+      btn.textContent = t.copied;
+      setTimeout(() => { btn.textContent = t.copy; }, 1500);
     };
   });
-  box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (shouldScroll) box.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+applyLanguage(lang);
 </script>
 </body>
 </html>
