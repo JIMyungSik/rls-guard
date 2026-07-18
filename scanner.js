@@ -552,7 +552,7 @@ export function scanSql(sql, source = 'pasted SQL') {
   for (const item of findings) counts[item.severity] += 1;
 
   return {
-    version: '0.4.1',
+    version: '0.5.0',
     source,
     scannedAt: new Date().toISOString(),
     score: Math.max(0, 100 - penalty),

@@ -62,9 +62,16 @@ Scan one migration, several ordered migrations, or stdin. The CLI exits with sta
 node cli.js supabase/migrations/*.sql
 node cli.js --fail-on high supabase/migrations/*.sql
 cat migration.sql | node cli.js --json
+node cli.js --format markdown --output rls-guard-report.md supabase/migrations/*.sql
 ```
 
-`--fail-on` accepts `critical`, `high`, `medium`, or `low`. Findings never include matched secret values.
+`--format` accepts `text`, `json`, or `markdown`. `--output` writes a review-ready artifact for pull requests and audit records. `--fail-on` accepts `critical`, `high`, `medium`, or `low`. Findings never include matched secret values.
+
+After the package is published, the pinned form will be:
+
+```bash
+npx @jimyungsik/rls-guard@0.5.0 --fail-on high supabase/migrations/*.sql
+```
 
 ## Limitations (honest ones)
 

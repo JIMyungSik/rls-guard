@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -56,4 +56,27 @@ test('CLI supports stricter severity thresholds and validates options', () => {
   const invalid = run(['--fail-on', 'urgent'], 'select 1;');
   assert.equal(invalid.status, 2);
   assert.match(invalid.stderr, /critical, high, medium, or low/);
+});
+
+test('CLI emits a Markdown audit report with actionable checkboxes', () => {
+  const result = run(['--format', 'markdown'], 'create table public.exposed (id bigint);');
+  assert.equal(result.status, 1);
+  assert.match(result.stdout, /# RLS Guard Security Report/);
+  assert.match(result.stdout, /\[CRITICAL\] RLS-001/);
+  assert.match(result.stdout, /- \[ \] Verified with role-based tests/);
+  assert.match(result.stdout, /```sql[\s\S]*ENABLE ROW LEVEL SECURITY/);
+});
+
+test('CLI writes reports to --output without printing the report', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'rls-guard-output-'));
+  const output = join(directory, 'report.md');
+  const result = run(['--format', 'markdown', '--output', output], `
+    create table public.notes (id bigint, user_id uuid);
+    alter table public.notes enable row level security;
+    create policy owner_reads on public.notes for select to authenticated
+      using ((select auth.uid()) = user_id);
+  `);
+  assert.equal(result.status, 0);
+  assert.equal(result.stdout, '');
+  assert.match(readFileSync(output, 'utf8'), /No rule-based risks found/);
 });

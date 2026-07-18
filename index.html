@@ -173,7 +173,8 @@ node cli.js --fail-on high \
   supabase/migrations/*.sql
 
 # Machine-readable output
-cat migration.sql | node cli.js --json</code></pre>
+cat migration.sql | node cli.js --json
+node cli.js --format markdown --output rls-report.md supabase/migrations/*.sql</code></pre>
   </div>
 </section>
 
