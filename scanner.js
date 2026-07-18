@@ -92,6 +92,8 @@ function splitStatements(sql) {
   let current = '';
   let quote = null;
   let dollarTag = null;
+  let line = 1;
+  let currentStartLine = 1;
 
   for (let i = 0; i < sql.length; i += 1) {
     const char = sql[i];
@@ -122,14 +124,22 @@ function splitStatements(sql) {
     }
 
     if (char === ';' && !quote && !dollarTag) {
-      if (current.trim()) statements.push(current.trim());
+      if (current.trim()) {
+        const leadingLines = (current.match(/^\s*/)?.[0].match(/\n/g) || []).length;
+        statements.push({ text: current.trim(), startLine: currentStartLine + leadingLines });
+      }
       current = '';
+      currentStartLine = line;
     } else {
       current += char;
     }
+    if (char === '\n') line += 1;
   }
 
-  if (current.trim()) statements.push(current.trim());
+  if (current.trim()) {
+    const leadingLines = (current.match(/^\s*/)?.[0].match(/\n/g) || []).length;
+    statements.push({ text: current.trim(), startLine: currentStartLine + leadingLines });
+  }
   return statements;
 }
 
@@ -165,7 +175,8 @@ function extractModel(sql) {
     return roles.get(normalized);
   };
 
-  for (const statement of statements) {
+  for (const statementRecord of statements) {
+    const { text: statement, startLine } = statementRecord;
     const compact = statement.replace(/\s+/g, ' ').trim();
     const dropTable = compact.match(/drop\s+table\s+(?:if\s+exists\s+)?([\w".]+)/i);
     if (dropTable) {
@@ -181,6 +192,7 @@ function extractModel(sql) {
       const table = ensureTable(createTable[1]);
       table.created = true;
       table.source = compact;
+      table.sourceLine = startLine;
       table.columns = [...createTable[2].matchAll(/(?:^|,)\s*"?([a-zA-Z_][\w]*)"?\s+[a-zA-Z]/g)].map((m) => m[1].toLowerCase());
       continue;
     }
@@ -193,6 +205,7 @@ function extractModel(sql) {
       if (operation === 'disable') table.rlsEnabled = false;
       if (operation === 'force') table.rlsForced = true;
       if (operation === 'no force') table.rlsForced = false;
+      table.sourceLine = startLine;
       continue;
     }
 
@@ -206,7 +219,8 @@ function extractModel(sql) {
         roles: tail.match(/\bto\s+(.+?)(?=\s+using\b|\s+with\s+check\b|$)/i)?.[1]?.split(',').map(normalizeIdentifier) || ['public'],
         using: tail.match(/\busing\s*\(([^]*)\)(?=\s+with\s+check\b|$)/i)?.[1]?.trim() || null,
         check: tail.match(/\bwith\s+check\s*\(([^]*)\)$/i)?.[1]?.trim() || null,
-        source: compact
+        source: compact,
+        sourceLine: startLine
       };
       policies.set(policyKey(item.table, item.name), item);
       ensureTable(policy[3]);
@@ -232,6 +246,7 @@ function extractModel(sql) {
           policies.delete(oldKey);
           existing.name = renamed[1] || renamed[2];
           existing.source = compact;
+          existing.sourceLine = startLine;
           policies.set(policyKey(table, existing.name), existing);
         } else {
           const roles = tail.match(/\bto\s+(.+?)(?=\s+using\b|\s+with\s+check\b|$)/i);
@@ -241,6 +256,7 @@ function extractModel(sql) {
           if (using) existing.using = using[1].trim();
           if (check) existing.check = check[1].trim();
           existing.source = compact;
+          existing.sourceLine = startLine;
         }
       }
       continue;
@@ -252,7 +268,8 @@ function extractModel(sql) {
         privileges: grant[1].split(',').map(normalizeIdentifier),
         table: qualifyTable(grant[2]),
         roles: grant[3].split(',').map(normalizeIdentifier),
-        source: compact
+        source: compact,
+        sourceLine: startLine
       });
       ensureTable(grant[2]);
       continue;
@@ -293,6 +310,7 @@ function extractModel(sql) {
       role.bypassRls = /\bbypassrls\b/i.test(createRole[2]) && !/\bnobypassrls\b/i.test(createRole[2]);
       role.superuser = /\bsuperuser\b/i.test(createRole[2]) && !/\bnosuperuser\b/i.test(createRole[2]);
       role.source = compact;
+      role.sourceLine = startLine;
       continue;
     }
 
@@ -304,6 +322,7 @@ function extractModel(sql) {
       if (/\bnosuperuser\b/i.test(alterRole[2])) role.superuser = false;
       else if (/\bsuperuser\b/i.test(alterRole[2])) role.superuser = true;
       role.source = compact;
+      role.sourceLine = startLine;
       continue;
     }
 
@@ -329,9 +348,11 @@ function extractModel(sql) {
           functions.delete(name);
           existing.name = newName;
           existing.source = compact;
+          existing.sourceLine = startLine;
           functions.set(newName, existing);
         } else {
           existing.source = compact;
+          existing.sourceLine = startLine;
         }
       }
       continue;
@@ -344,7 +365,8 @@ function extractModel(sql) {
         name,
         securityDefiner: /security\s+definer/i.test(compact),
         searchPathFixed: /set\s+search_path\s*(?:=|to)\s*/i.test(compact),
-        source: compact
+        source: compact,
+        sourceLine: startLine
       });
       continue;
     }
@@ -370,9 +392,11 @@ function extractModel(sql) {
           views.delete(oldName);
           existing.name = newName;
           existing.source = compact;
+          existing.sourceLine = startLine;
           views.set(newName, existing);
         } else {
           existing.source = compact;
+          existing.sourceLine = startLine;
         }
       }
       continue;
@@ -384,13 +408,14 @@ function extractModel(sql) {
       views.set(name, {
         name,
         securityInvoker: /security_invoker\s*=\s*(?:true|on)/i.test(compact),
-        source: compact
+        source: compact,
+        sourceLine: startLine
       });
     }
   }
 
   return {
-    statements,
+    statements: statements.map((item) => item.text),
     tables: [...tables.values()],
     policies: [...policies.values()],
     roles: [...roles.values()],
@@ -544,15 +569,36 @@ function runRules(model, rawSql) {
   return findings.sort((a, b) => SEVERITY_WEIGHT[b.severity] - SEVERITY_WEIGHT[a.severity]);
 }
 
+function lineForFinding(finding, model, rawSql) {
+  if (finding.ruleId === 'SECRET-001') {
+    const match = rawSql.match(/\b(?:sb_secret_[A-Za-z0-9_-]{12,}|service_role\s*[=:]\s*["']?[A-Za-z0-9._-]{16,}|postgres(?:ql)?:\/\/[^\s'";]+)/i);
+    if (match?.index != null) return rawSql.slice(0, match.index).split('\n').length;
+  }
+  const [targetName, detailName] = finding.target.split(' / ');
+  const policy = detailName && model.policies.find((item) => item.table === targetName && item.name === detailName);
+  if (policy?.sourceLine) return policy.sourceLine;
+  const candidates = [
+    ...model.tables,
+    ...model.grants,
+    ...model.roles,
+    ...model.functions,
+    ...model.views
+  ];
+  return candidates.find((item) => item.name === targetName || item.table === targetName)?.sourceLine || null;
+}
+
 export function scanSql(sql, source = 'pasted SQL') {
   const model = extractModel(sql);
-  const findings = runRules(model, sql);
+  const findings = runRules(model, sql).map((item) => {
+    const startLine = lineForFinding(item, model, sql);
+    return startLine ? { ...item, location: { startLine } } : item;
+  });
   const penalty = findings.reduce((sum, item) => sum + SEVERITY_WEIGHT[item.severity], 0);
   const counts = { critical: 0, high: 0, medium: 0, low: 0 };
   for (const item of findings) counts[item.severity] += 1;
 
   return {
-    version: '0.6.0',
+    version: '0.6.1',
     source,
     scannedAt: new Date().toISOString(),
     score: Math.max(0, 100 - penalty),

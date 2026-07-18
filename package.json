@@ -1,6 +1,6 @@
 {
   "name": "@carjms/rls-guard",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "description": "Static Supabase Row Level Security scanner for migrations and CI",
   "license": "MIT",
   "repository": {

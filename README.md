@@ -71,7 +71,7 @@ node cli.js --format sarif --output rls-guard.sarif supabase/migrations/*.sql
 Run the pinned public package without installing it globally:
 
 ```bash
-npx @carjms/rls-guard@0.6.0 --fail-on high supabase/migrations/*.sql
+npx @carjms/rls-guard@0.6.1 --fail-on high supabase/migrations/*.sql
 ```
 
 ## Limitations (honest ones)

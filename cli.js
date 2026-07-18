@@ -7,7 +7,7 @@ import { scanSql } from './scanner.js';
 const SEVERITY_RANK = { critical: 4, high: 3, medium: 2, low: 1 };
 
 function usage() {
-  return `RLS Guard 0.6.0
+  return `RLS Guard 0.6.1
 
 Usage:
   node cli.js [options] <migration.sql> [...more.sql]
@@ -143,6 +143,12 @@ export function sarifReport(report) {
         ruleId: finding.ruleId,
         level: SARIF_LEVEL[finding.severity],
         message: { text: `${finding.title} Target: ${finding.target}. ${finding.evidence}` },
+        ...(finding.location?.uri ? {
+          locations: [{ physicalLocation: {
+            artifactLocation: { uri: finding.location.uri.replaceAll('\\', '/') },
+            region: { startLine: finding.location.startLine }
+          } }]
+        } : {}),
         properties: { severity: finding.severity, confidence: finding.confidence, remediation: finding.remediation }
       })),
       invocations: [{ executionSuccessful: true }]
@@ -163,9 +169,18 @@ async function main() {
 
   let sql;
   let source;
+  let sourceRanges = [];
   if (options.files.length) {
     const contents = await Promise.all(options.files.map((file) => readFile(file, 'utf8')));
-    sql = contents.map((content, index) => `\n-- file: ${options.files[index]}\n${content}`).join('\n');
+    let nextLine = 1;
+    const fragments = contents.map((content, index) => {
+      const contentLines = content.split('\n').length;
+      const range = { uri: options.files[index], startLine: nextLine + 1, endLine: nextLine + contentLines };
+      sourceRanges.push(range);
+      nextLine = range.endLine + 1;
+      return `-- file: ${options.files[index]}\n${content}`;
+    });
+    sql = fragments.join('\n');
     source = options.files.join(', ');
   } else if (!process.stdin.isTTY) {
     sql = await readStdin();
@@ -177,6 +192,13 @@ async function main() {
   }
 
   const report = scanSql(sql, source);
+  if (sourceRanges.length) {
+    report.findings = report.findings.map((finding) => {
+      const combinedLine = finding.location?.startLine;
+      const range = sourceRanges.find((item) => combinedLine >= item.startLine && combinedLine <= item.endLine);
+      return range ? { ...finding, location: { uri: range.uri, startLine: combinedLine - range.startLine + 1 } } : finding;
+    });
+  }
   const rendered = options.format === 'json'
     ? JSON.stringify(report, null, 2)
     : options.format === 'markdown'

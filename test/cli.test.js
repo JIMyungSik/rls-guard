@@ -13,7 +13,7 @@ function run(args, input) {
 
 test('CLI exits 1 when a critical finding reaches the default threshold', () => {
   const result = run([], 'create table public.exposed (id bigint);');
-  assert.equal(result.status, 1);
+  assert.equal(result.status, 1, `${result.stdout}\n${result.stderr}`);
   assert.match(result.stdout, /RLS-001/);
 });
 
@@ -60,7 +60,7 @@ test('CLI supports stricter severity thresholds and validates options', () => {
 
 test('CLI emits a Markdown audit report with actionable checkboxes', () => {
   const result = run(['--format', 'markdown'], 'create table public.exposed (id bigint);');
-  assert.equal(result.status, 1);
+  assert.equal(result.status, 1, `${result.stdout}\n${result.stderr}`);
   assert.match(result.stdout, /# RLS Guard Security Report/);
   assert.match(result.stdout, /\[CRITICAL\] RLS-001/);
   assert.match(result.stdout, /- \[ \] Verified with role-based tests/);
@@ -87,7 +87,7 @@ test('CLI emits valid SARIF with mapped levels and remediation metadata', () => 
   const sarif = JSON.parse(result.stdout);
   assert.equal(sarif.version, '2.1.0');
   assert.equal(sarif.runs[0].tool.driver.name, 'RLS Guard');
-  assert.equal(sarif.runs[0].tool.driver.version, '0.6.0');
+  assert.equal(sarif.runs[0].tool.driver.version, '0.6.1');
   assert.equal(sarif.runs[0].results[0].ruleId, 'RLS-001');
   assert.equal(sarif.runs[0].results[0].level, 'error');
   assert.match(sarif.runs[0].results[0].properties.remediation, /ENABLE ROW LEVEL SECURITY/);
@@ -104,4 +104,30 @@ test('CLI writes an empty SARIF result set for safe SQL', () => {
   const sarif = JSON.parse(result.stdout);
   assert.deepEqual(sarif.runs[0].results, []);
   assert.deepEqual(sarif.runs[0].tool.driver.rules, []);
+});
+
+test('SARIF points to the migration file and source line', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'rls-guard-sarif-location-'));
+  const migration = join(directory, '003_exposed.sql');
+  writeFileSync(migration, '-- migration note\n\ncreate table public.exposed (id bigint);\n');
+  const result = run(['--format', 'sarif', migration]);
+  assert.equal(result.status, 1, `${result.stdout}\n${result.stderr}`);
+  const sarif = JSON.parse(result.stdout);
+  const location = sarif.runs[0].results[0].locations[0].physicalLocation;
+  assert.equal(location.artifactLocation.uri, migration);
+  assert.equal(location.region.startLine, 3);
+});
+
+test('SARIF maps a finding in the second ordered migration to that file', () => {
+  const directory = mkdtempSync(join(tmpdir(), 'rls-guard-sarif-multiple-'));
+  const first = join(directory, '001_safe.sql');
+  const second = join(directory, '002_exposed.sql');
+  writeFileSync(first, 'create table private.audit (id bigint);\n');
+  writeFileSync(second, '-- second file\ncreate table public.exposed (id bigint);\n');
+  const result = run(['--format', 'sarif', first, second]);
+  assert.equal(result.status, 1, `${result.stdout}\n${result.stderr}`);
+  const sarif = JSON.parse(result.stdout);
+  const location = sarif.runs[0].results.find((item) => item.ruleId === 'RLS-001').locations[0].physicalLocation;
+  assert.equal(location.artifactLocation.uri, second);
+  assert.equal(location.region.startLine, 2);
 });

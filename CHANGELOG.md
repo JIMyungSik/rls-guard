@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.6.1 - 2026-07-19
+
+- Add repository-relative file and line locations to SARIF findings.
+- Preserve correct locations when ordered migrations from multiple files are scanned together.
+- Expand CLI regression coverage to 27 tests.
+
 ## 0.6.0 - 2026-07-19
 
 - Add SARIF 2.1.0 output for GitHub Code Scanning uploads.
