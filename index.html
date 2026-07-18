@@ -236,7 +236,7 @@ node cli.js --format sarif --output rls-guard.sarif supabase/migrations/*.sql</c
   <div class="wrap">
     <div data-i18n-html="footerBuilt">Built by <a href="https://github.com/JIMyungSik" target="_blank" rel="noopener">@JIMyungSik</a> · Open source on <a href="https://github.com/JIMyungSik/rls-guard" target="_blank" rel="noopener">GitHub</a> — a ⭐ helps more devs find this.</div>
     <div class="disclaimer" data-i18n="disclaimer">A clean scan is not a security guarantee. This static analysis doesn't replace a full audit or live access testing. Nothing you paste is uploaded, stored, or logged — check the network tab.</div>
-    <div class="kr" data-i18n-html="playbook">🇰🇷 한국 개발자시라면 — 이 도구는 AI 에이전트가 72시간 챌린지 중에 만들었습니다. 제작→배포→수익화 전 과정 기록: <a href="https://ai-72h-playbook.vercel.app">72시간 플레이북 보기 →</a></div>
+    <div class="kr" data-i18n-html="playbook">🇰🇷 한국 개발자시라면 — 이 도구는 AI 에이전트가 72시간 챌린지 중에 만들었습니다. 제작→배포→수익화 전 과정 기록: <a href="https://ai-72h-playbook.pages.dev/?utm_source=rls_guard&amp;utm_medium=product&amp;utm_campaign=playbook">72시간 플레이북 보기 →</a></div>
   </div>
 </footer>
 
@@ -259,7 +259,7 @@ const translations = {
     kitPoint1: '<strong>12 SQL recipes</strong> for ownership, multi-tenancy, Storage, RPC, views, and functions', kitPoint2: '<strong>Runnable demo + pgTAP starter</strong> for role-based access tests', kitPoint3: '<strong>GitHub Actions, audit report, and release checklist</strong> to prevent recurrence',
     kitActionTitle: 'RLS Guard Security Kit v1.1', kitCta: 'View the practical kit →', kitLimit: 'Static analysis and templates do not replace a project-specific security audit or live access testing.',
     disclaimer: "A clean scan is not a security guarantee. This static analysis doesn't replace a full audit or live access testing. Nothing you paste is uploaded, stored, or logged — check the network tab.",
-    playbook: '🇰🇷 한국 개발자시라면 — 이 도구는 AI 에이전트가 72시간 챌린지 중에 만들었습니다. 제작→배포→수익화 전 과정 기록: <a href="https://ai-72h-playbook.vercel.app">72시간 플레이북 보기 →</a>',
+    playbook: '🇰🇷 한국 개발자시라면 — 이 도구는 AI 에이전트가 72시간 챌린지 중에 만들었습니다. 제작→배포→수익화 전 과정 기록: <a href="https://ai-72h-playbook.pages.dev/?utm_source=rls_guard&amp;utm_medium=product&amp;utm_campaign=playbook">72시간 플레이북 보기 →</a>',
     placeholder: 'create table public.orders ( ... );\nalter table public.orders enable row level security;\ncreate policy ...',
     labels: ['Critical', 'High', 'Medium', 'Tables', 'Policies'], copy: 'copy', copied: 'copied ✓', clean: '✓ No findings',
     cleanSummary: (r) => `Scanned ${r.summary.tables} table(s) and ${r.summary.policies} policy(ies) against 13 rules.`,
@@ -280,7 +280,7 @@ const translations = {
     kitPoint1: '<strong>SQL 처방전 12종</strong> — 소유권, 멀티테넌트, Storage, RPC, View, 함수', kitPoint2: '<strong>실행 데모 + pgTAP 스타터</strong> — 역할별 접근 테스트', kitPoint3: '<strong>GitHub Actions·감사 보고서·배포 체크리스트</strong> — 재발 방지',
     kitActionTitle: 'RLS Guard 실전 보안 킷 v1.1', kitCta: '실전 보안 킷 상세 보기 →', kitLimit: '정적 분석과 템플릿은 프로젝트별 보안 감사나 실제 접근 테스트를 대신하지 않습니다.',
     disclaimer: '검사 통과가 보안을 보장하지는 않습니다. 정적 분석은 전체 보안 감사나 실제 접근 테스트를 대체하지 않습니다. 붙여 넣은 내용은 업로드·저장·기록되지 않습니다.',
-    playbook: '🇰🇷 이 도구는 AI 에이전트와 함께 72시간 챌린지 중에 만들었습니다. 제작→배포→수익화 전 과정 기록: <a href="https://ai-72h-playbook.vercel.app">72시간 플레이북 보기 →</a>',
+    playbook: '🇰🇷 이 도구는 AI 에이전트와 함께 72시간 챌린지 중에 만들었습니다. 제작→배포→수익화 전 과정 기록: <a href="https://ai-72h-playbook.pages.dev/?utm_source=rls_guard&amp;utm_medium=product&amp;utm_campaign=playbook">72시간 플레이북 보기 →</a>',
     placeholder: 'create table public.orders ( ... );\nalter table public.orders enable row level security;\ncreate policy ...',
     labels: ['치명적', '높음', '중간', '테이블', '정책'], copy: '복사', copied: '복사됨 ✓', clean: '✓ 발견된 문제 없음',
     cleanSummary: (r) => `13개 규칙으로 테이블 ${r.summary.tables}개와 정책 ${r.summary.policies}개를 검사했습니다.`,
