@@ -80,3 +80,28 @@ test('CLI writes reports to --output without printing the report', () => {
   assert.equal(result.stdout, '');
   assert.match(readFileSync(output, 'utf8'), /No rule-based risks found/);
 });
+
+test('CLI emits valid SARIF with mapped levels and remediation metadata', () => {
+  const result = run(['--format', 'sarif'], 'create table public.exposed (id bigint);');
+  assert.equal(result.status, 1);
+  const sarif = JSON.parse(result.stdout);
+  assert.equal(sarif.version, '2.1.0');
+  assert.equal(sarif.runs[0].tool.driver.name, 'RLS Guard');
+  assert.equal(sarif.runs[0].tool.driver.version, '0.6.0');
+  assert.equal(sarif.runs[0].results[0].ruleId, 'RLS-001');
+  assert.equal(sarif.runs[0].results[0].level, 'error');
+  assert.match(sarif.runs[0].results[0].properties.remediation, /ENABLE ROW LEVEL SECURITY/);
+});
+
+test('CLI writes an empty SARIF result set for safe SQL', () => {
+  const result = run(['--format', 'sarif'], `
+    create table public.notes (id bigint, user_id uuid);
+    alter table public.notes enable row level security;
+    create policy owner_reads on public.notes for select to authenticated
+      using ((select auth.uid()) = user_id);
+  `);
+  assert.equal(result.status, 0);
+  const sarif = JSON.parse(result.stdout);
+  assert.deepEqual(sarif.runs[0].results, []);
+  assert.deepEqual(sarif.runs[0].tool.driver.rules, []);
+});

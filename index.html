@@ -188,7 +188,7 @@
   <div class="wrap ci-grid">
     <div>
       <h2 data-i18n="ciTitle">Fail unsafe migrations in CI</h2>
-      <p data-i18n="ciDescription">The browser scanner and CLI use the same engine. Scan ordered migration files, choose a severity threshold, and emit JSON for another tool to consume.</p>
+      <p data-i18n="ciDescription">The browser scanner and CLI use the same engine. Scan ordered migration files, choose a severity threshold, and emit JSON, Markdown, or SARIF for GitHub Code Scanning.</p>
       <ul class="ci-points">
         <li data-i18n-html="ciPoint1"><strong>Exit 1</strong> at or above your chosen severity</li>
         <li data-i18n-html="ciPoint2"><strong>Migration-aware</strong> across ALTER, DROP, and REVOKE</li>
@@ -205,7 +205,8 @@ node cli.js --fail-on high \
 
 # Machine-readable output
 cat migration.sql | node cli.js --json
-node cli.js --format markdown --output rls-report.md supabase/migrations/*.sql</code></pre>
+node cli.js --format markdown --output rls-report.md supabase/migrations/*.sql
+node cli.js --format sarif --output rls-guard.sarif supabase/migrations/*.sql</code></pre>
   </div>
 </section>
 
@@ -250,7 +251,7 @@ const translations = {
     privacy: '🔒 Runs entirely in this browser tab — your SQL is never uploaded', editorHint: 'supabase/migrations/*.sql — paste one file or all of them',
     loadVulnerable: 'Load vulnerable example', loadSafe: 'Load safe example', scanButton: 'Scan my SQL →', scanNote: '13 rules · migration-aware · free · no signup',
     rulesTitle: 'What it checks', rulesDescription: 'The same classes of misconfiguration behind most real-world Supabase data leaks.', rule: 'Rule', detects: 'Detects', severity: 'Severity',
-    ciTitle: 'Fail unsafe migrations in CI', ciDescription: 'The browser scanner and CLI use the same engine. Scan ordered migration files, choose a severity threshold, and emit JSON for another tool to consume.',
+    ciTitle: 'Fail unsafe migrations in CI', ciDescription: 'The browser scanner and CLI use the same engine. Scan ordered migration files, choose a severity threshold, and emit JSON, Markdown, or SARIF for GitHub Code Scanning.',
     ciPoint1: '<strong>Exit 1</strong> at or above your chosen severity', ciPoint2: '<strong>Migration-aware</strong> across ALTER, DROP, and REVOKE', ciPoint3: '<strong>Secret-safe reports</strong> never echo matched key values',
     cliSetup: 'CLI setup on GitHub →', footerBuilt: 'Built by <a href="https://github.com/JIMyungSik" target="_blank" rel="noopener">@JIMyungSik</a> · Open source on <a href="https://github.com/JIMyungSik/rls-guard" target="_blank" rel="noopener">GitHub</a> — a ⭐ helps more devs find this.',
     kitEyebrow: 'From finding to prevention', kitTitle: 'Found a risk? Apply the fix, test each role, and stop regressions in CI.',
@@ -271,7 +272,7 @@ const translations = {
     privacy: '🔒 이 브라우저 탭에서만 실행됩니다 — SQL은 서버로 전송되지 않습니다', editorHint: 'supabase/migrations/*.sql — 파일 하나 또는 전체 내용을 붙여 넣으세요',
     loadVulnerable: '취약한 예제 불러오기', loadSafe: '안전한 예제 불러오기', scanButton: '내 SQL 검사하기 →', scanNote: '13개 규칙 · 마이그레이션 인식 · 무료 · 가입 불필요',
     rulesTitle: '무엇을 검사하나요?', rulesDescription: '실제 Supabase 데이터 유출에서 자주 발견되는 설정 오류를 검사합니다.', rule: '규칙', detects: '탐지 항목', severity: '심각도',
-    ciTitle: '안전하지 않은 마이그레이션을 CI에서 차단', ciDescription: '웹 스캐너와 CLI는 같은 엔진을 사용합니다. 순서대로 마이그레이션 파일을 검사하고, 실패 기준 심각도를 정하고, 다른 도구가 읽을 JSON을 생성할 수 있습니다.',
+    ciTitle: '안전하지 않은 마이그레이션을 CI에서 차단', ciDescription: '웹 스캐너와 CLI는 같은 엔진을 사용합니다. 마이그레이션 파일을 순서대로 검사하고, 실패 기준을 정하고, JSON·Markdown 또는 GitHub Code Scanning용 SARIF를 생성할 수 있습니다.',
     ciPoint1: '선택한 심각도 이상이면 <strong>종료 코드 1</strong>', ciPoint2: 'ALTER, DROP, REVOKE를 추적하는 <strong>마이그레이션 인식</strong>', ciPoint3: '발견된 키 값을 노출하지 않는 <strong>비밀정보 안전 보고서</strong>',
     cliSetup: 'GitHub에서 CLI 설정 보기 →', footerBuilt: '<a href="https://github.com/JIMyungSik" target="_blank" rel="noopener">@JIMyungSik</a> 제작 · <a href="https://github.com/JIMyungSik/rls-guard" target="_blank" rel="noopener">GitHub</a> 오픈소스 — ⭐로 더 많은 개발자에게 알려주세요.',
     kitEyebrow: '진단에서 재발 방지까지', kitTitle: '위험을 발견했다면, 수정하고 역할별로 테스트한 뒤 CI에서 재발을 막으세요.',

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0 - 2026-07-19
+
+- Add SARIF 2.1.0 output for GitHub Code Scanning uploads.
+- Map Critical/High findings to SARIF errors, Medium to warnings, and Low to notes.
+- Include confidence and suggested remediation metadata in every SARIF result.
+- Expand CLI regression coverage to 25 tests.
+
 ## 0.5.0 - 2026-07-19
 
 - Add review-ready Markdown reports with remediation blocks and verification checklists.

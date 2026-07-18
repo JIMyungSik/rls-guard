@@ -63,14 +63,15 @@ node cli.js supabase/migrations/*.sql
 node cli.js --fail-on high supabase/migrations/*.sql
 cat migration.sql | node cli.js --json
 node cli.js --format markdown --output rls-guard-report.md supabase/migrations/*.sql
+node cli.js --format sarif --output rls-guard.sarif supabase/migrations/*.sql
 ```
 
-`--format` accepts `text`, `json`, or `markdown`. `--output` writes a review-ready artifact for pull requests and audit records. `--fail-on` accepts `critical`, `high`, `medium`, or `low`. Findings never include matched secret values.
+`--format` accepts `text`, `json`, `markdown`, or GitHub Code Scanning-compatible `sarif`. `--output` writes a review-ready artifact for pull requests and audit records. `--fail-on` accepts `critical`, `high`, `medium`, or `low`. Findings never include matched secret values.
 
-After the package is published, the pinned form will be:
+Run the pinned public package without installing it globally:
 
 ```bash
-npx @carjms/rls-guard@0.5.0 --fail-on high supabase/migrations/*.sql
+npx @carjms/rls-guard@0.6.0 --fail-on high supabase/migrations/*.sql
 ```
 
 ## Limitations (honest ones)
@@ -84,6 +85,7 @@ Found a false positive or a rule idea? [Open an issue](../../issues) — feedbac
 - [x] CI-ready CLI with severity thresholds and JSON output
 - [x] Migration state reconstruction for policy, grant, role, function, and view changes
 - [x] Storage object write-policy bucket checks
+- [x] SARIF output for GitHub Code Scanning
 
 If any of these would be useful to you, a ⭐ and an issue telling me which one helps prioritize.
 

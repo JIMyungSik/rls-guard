@@ -7,7 +7,7 @@ import { scanSql } from './scanner.js';
 const SEVERITY_RANK = { critical: 4, high: 3, medium: 2, low: 1 };
 
 function usage() {
-  return `RLS Guard 0.5.0
+  return `RLS Guard 0.6.0
 
 Usage:
   node cli.js [options] <migration.sql> [...more.sql]
@@ -16,7 +16,7 @@ Usage:
 Options:
   --fail-on <severity>  Exit 1 when this severity or higher is found
                         (critical, high, medium, low; default: critical)
-  --format <type>       Report format: text, json, markdown (default: text)
+  --format <type>       Report format: text, json, markdown, sarif (default: text)
   --json                Alias for --format json
   --output <path>       Write the report to a file instead of stdout
   --help                Show this help
@@ -31,7 +31,7 @@ function parseArgs(argv) {
     if (arg === '--json') { options.format = 'json'; continue; }
     if (arg === '--format') {
       const format = argv[i + 1]?.toLowerCase();
-      if (!['text', 'json', 'markdown'].includes(format)) throw new Error('--format must be text, json, or markdown');
+      if (!['text', 'json', 'markdown', 'sarif'].includes(format)) throw new Error('--format must be text, json, markdown, or sarif');
       options.format = format;
       i += 1;
       continue;
@@ -124,6 +124,32 @@ export function markdownReport(report) {
   return lines.join('\n');
 }
 
+const SARIF_LEVEL = { critical: 'error', high: 'error', medium: 'warning', low: 'note' };
+
+export function sarifReport(report) {
+  const rules = [...new Map(report.findings.map((finding) => [finding.ruleId, {
+    id: finding.ruleId,
+    name: finding.ruleId.replace('-', '_'),
+    shortDescription: { text: finding.title },
+    help: { text: `${finding.evidence}\n\nSuggested remediation: ${finding.remediation}` },
+    defaultConfiguration: { level: SARIF_LEVEL[finding.severity] }
+  }])).values()];
+  return {
+    version: '2.1.0',
+    $schema: 'https://json.schemastore.org/sarif-2.1.0.json',
+    runs: [{
+      tool: { driver: { name: 'RLS Guard', version: report.version, informationUri: 'https://rls-guard-rose.vercel.app', rules } },
+      results: report.findings.map((finding) => ({
+        ruleId: finding.ruleId,
+        level: SARIF_LEVEL[finding.severity],
+        message: { text: `${finding.title} Target: ${finding.target}. ${finding.evidence}` },
+        properties: { severity: finding.severity, confidence: finding.confidence, remediation: finding.remediation }
+      })),
+      invocations: [{ executionSuccessful: true }]
+    }]
+  };
+}
+
 async function main() {
   let options;
   try {
@@ -155,6 +181,8 @@ async function main() {
     ? JSON.stringify(report, null, 2)
     : options.format === 'markdown'
       ? markdownReport(report)
+      : options.format === 'sarif'
+        ? JSON.stringify(sarifReport(report), null, 2)
       : textReport(report);
   if (options.output) await writeFile(options.output, `${rendered}\n`, 'utf8');
   else console.log(rendered);
