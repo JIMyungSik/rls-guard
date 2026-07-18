@@ -1,5 +1,5 @@
 // RLS Guard — Supabase SQL security scanner (browser build, English)
-// Ported from rls-guard 0.1 CLI. Runs 100% client-side.
+// Ported from rls-guard 0.1 CLI. Runs entirely client-side.
 
 const SEVERITY_WEIGHT = { critical: 30, high: 18, medium: 8, low: 3 };
 

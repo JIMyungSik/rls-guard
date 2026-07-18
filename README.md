@@ -4,7 +4,7 @@
 
 <p>
   <a href="https://rls-guard-rose.vercel.app"><img alt="Live demo" src="https://img.shields.io/badge/demo-live-3ecf8e"></a>
-  <img alt="Client-side only" src="https://img.shields.io/badge/privacy-100%25%20client--side-blue">
+  <img alt="Client-side only" src="https://img.shields.io/badge/privacy-client--side%20only-blue">
   <img alt="License" src="https://img.shields.io/badge/license-MIT-lightgrey">
 </p>
 
@@ -18,7 +18,7 @@ Most Supabase data leaks come from the same handful of misconfigurations: tables
 
 ## Why client-side matters
 
-A security tool that uploads your schema is itself a security risk. RLS Guard runs **100% in your browser** — your SQL is never uploaded, stored, or logged (verify in the network tab). It even flags service keys or connection strings accidentally pasted into SQL, without storing them.
+A security tool that uploads your schema is itself a security risk. RLS Guard runs **entirely in your browser** — your SQL is never uploaded, stored, or logged (verify in the network tab). It even flags service keys or connection strings accidentally pasted into SQL, without storing them.
 
 ## Rules
 
