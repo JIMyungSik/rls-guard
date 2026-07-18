@@ -14,7 +14,7 @@ Paste your `supabase/migrations/*.sql` and get findings in milliseconds — no s
 
 ![Scan results with severity badges and fix SQL](docs/demo-results.png)
 
-Most Supabase data leaks come from the same handful of misconfigurations: tables exposed without RLS, `USING (true)` policies, INSERT policies without `WITH CHECK`, views that silently bypass RLS. RLS Guard statically scans for 10 of these classes and gives you the **exact fix SQL** for each finding, with a copy button.
+Most Supabase data leaks come from the same handful of misconfigurations: tables exposed without RLS, `USING (true)` policies, INSERT policies without `WITH CHECK`, views that silently bypass RLS. RLS Guard reconstructs the final state of pasted migrations and scans for 12 of these classes, with fix SQL for each finding.
 
 ## Why client-side matters
 
@@ -30,6 +30,8 @@ A security tool that uploads your schema is itself a security risk. RLS Guard ru
 | RLS-004 | INSERT policy missing `WITH CHECK` | High |
 | RLS-005 | Owner/tenant column never referenced by any policy | High |
 | RLS-006 | Write policies applied to PUBLIC role | High |
+| RLS-007 | Policy omits every row condition (PostgreSQL defaults it to TRUE) | High/Critical |
+| STORAGE-001 | Storage write policy is not constrained by `bucket_id` | High |
 | GRANT-001 | Write privileges granted to `anon`/`public` | High |
 | FUNC-001 | `SECURITY DEFINER` functions with unpinned search_path | High |
 | VIEW-001 | Views without `security_invoker` (RLS bypass) | High |
@@ -60,8 +62,8 @@ Found a false positive or a rule idea? [Open an issue](../../issues) — feedbac
 ## Roadmap
 
 - [ ] GitHub Action — fail CI when a migration introduces a Critical finding
-- [ ] Full-history state reconstruction across migration files
-- [ ] Storage object policy checks
+- [x] Migration state reconstruction for table/policy drops and grant revocations
+- [x] Storage object write-policy bucket checks
 
 If any of these would be useful to you, a ⭐ and an issue telling me which one helps prioritize.
 

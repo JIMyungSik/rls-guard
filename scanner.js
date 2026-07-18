@@ -12,6 +12,75 @@ function qualifyTable(raw) {
   return value.includes('.') ? value : `public.${value}`;
 }
 
+function policyKey(table, name) {
+  return `${qualifyTable(table)}\u0000${normalizeIdentifier(name)}`;
+}
+
+// Remove comments without corrupting quoted strings or dollar-quoted bodies.
+// This prevents commented-out DDL and values such as '--not-a-comment' from
+// changing the reconstructed migration state.
+function stripComments(sql) {
+  let output = '';
+  let quote = null;
+  let dollarTag = null;
+  let lineComment = false;
+  let blockDepth = 0;
+
+  for (let i = 0; i < sql.length; i += 1) {
+    const char = sql[i];
+    const next = sql[i + 1];
+    const rest = sql.slice(i);
+
+    if (lineComment) {
+      if (char === '\n') { lineComment = false; output += '\n'; }
+      continue;
+    }
+    if (blockDepth) {
+      if (char === '/' && next === '*') { blockDepth += 1; i += 1; }
+      else if (char === '*' && next === '/') { blockDepth -= 1; i += 1; }
+      else if (char === '\n') output += '\n';
+      continue;
+    }
+
+    if (!quote && !dollarTag && char === '-' && next === '-') {
+      lineComment = true;
+      i += 1;
+      continue;
+    }
+    if (!quote && !dollarTag && char === '/' && next === '*') {
+      blockDepth = 1;
+      i += 1;
+      continue;
+    }
+
+    if (!quote && !dollarTag) {
+      const tag = rest.match(/^\$[A-Za-z0-9_]*\$/)?.[0];
+      if (tag) {
+        dollarTag = tag;
+        output += tag;
+        i += tag.length - 1;
+        continue;
+      }
+    } else if (dollarTag && rest.startsWith(dollarTag)) {
+      output += dollarTag;
+      i += dollarTag.length - 1;
+      dollarTag = null;
+      continue;
+    }
+
+    if (!dollarTag && (char === "'" || char === '"')) {
+      if (quote === char && next === char) {
+        output += char + char;
+        i += 1;
+        continue;
+      }
+      quote = quote === char ? null : quote || char;
+    }
+    output += char;
+  }
+  return output;
+}
+
 function splitStatements(sql) {
   const statements = [];
   let current = '';
@@ -59,10 +128,10 @@ function splitStatements(sql) {
 }
 
 function extractModel(sql) {
-  const statements = splitStatements(sql);
+  const statements = splitStatements(stripComments(sql));
   const tables = new Map();
-  const policies = [];
-  const grants = [];
+  const policies = new Map();
+  let grants = [];
   const functions = [];
   const views = [];
 
@@ -82,7 +151,16 @@ function extractModel(sql) {
   };
 
   for (const statement of statements) {
-    const compact = statement.replace(/--.*$/gm, ' ').replace(/\s+/g, ' ').trim();
+    const compact = statement.replace(/\s+/g, ' ').trim();
+    const dropTable = compact.match(/drop\s+table\s+(?:if\s+exists\s+)?([\w".]+)/i);
+    if (dropTable) {
+      const tableName = qualifyTable(dropTable[1]);
+      tables.delete(tableName);
+      for (const key of policies.keys()) {
+        if (key.startsWith(`${tableName}\u0000`)) policies.delete(key);
+      }
+      continue;
+    }
     const createTable = compact.match(/create\s+table\s+(?:if\s+not\s+exists\s+)?([\w".]+)\s*\(([^]*)\)$/i);
     if (createTable) {
       const table = ensureTable(createTable[1]);
@@ -106,7 +184,7 @@ function extractModel(sql) {
     const policy = compact.match(/create\s+policy\s+(?:"([^"]+)"|([\w-]+))\s+on\s+([\w".]+)([^]*)/i);
     if (policy) {
       const tail = policy[4];
-      policies.push({
+      const item = {
         name: policy[1] || policy[2],
         table: qualifyTable(policy[3]),
         command: tail.match(/\bfor\s+(select|insert|update|delete|all)\b/i)?.[1]?.toLowerCase() || 'all',
@@ -114,8 +192,15 @@ function extractModel(sql) {
         using: tail.match(/\busing\s*\(([^]*)\)(?=\s+with\s+check\b|$)/i)?.[1]?.trim() || null,
         check: tail.match(/\bwith\s+check\s*\(([^]*)\)$/i)?.[1]?.trim() || null,
         source: compact
-      });
+      };
+      policies.set(policyKey(item.table, item.name), item);
       ensureTable(policy[3]);
+      continue;
+    }
+
+    const dropPolicy = compact.match(/drop\s+policy\s+(?:if\s+exists\s+)?(?:"([^"]+)"|([\w-]+))\s+on\s+([\w".]+)/i);
+    if (dropPolicy) {
+      policies.delete(policyKey(dropPolicy[3], dropPolicy[1] || dropPolicy[2]));
       continue;
     }
 
@@ -131,12 +216,35 @@ function extractModel(sql) {
       continue;
     }
 
+    const revoke = compact.match(/revoke\s+(.+?)\s+on\s+(?:table\s+)?([\w".]+)\s+from\s+(.+)$/i);
+    if (revoke) {
+      const revokedPrivileges = revoke[1].split(',').map(normalizeIdentifier);
+      const table = qualifyTable(revoke[2]);
+      const revokedRoles = new Set(revoke[3].split(',').map(normalizeIdentifier));
+      const revokeAll = revokedPrivileges.some((privilege) => ['all', 'all privileges'].includes(privilege));
+      grants = grants.flatMap((activeGrant) => {
+        if (activeGrant.table !== table) return [activeGrant];
+        const unaffectedRoles = activeGrant.roles.filter((role) => !revokedRoles.has(role));
+        const affectedRoles = activeGrant.roles.filter((role) => revokedRoles.has(role));
+        const remainingPrivileges = revokeAll
+          ? []
+          : activeGrant.privileges.filter((privilege) => !revokedPrivileges.includes(privilege));
+        const next = [];
+        if (unaffectedRoles.length) next.push({ ...activeGrant, roles: unaffectedRoles });
+        if (affectedRoles.length && remainingPrivileges.length) {
+          next.push({ ...activeGrant, roles: affectedRoles, privileges: remainingPrivileges });
+        }
+        return next;
+      });
+      continue;
+    }
+
     const fn = compact.match(/create\s+(?:or\s+replace\s+)?function\s+([\w".]+)[^]*$/i);
     if (fn) {
       functions.push({
         name: normalizeIdentifier(fn[1]),
         securityDefiner: /security\s+definer/i.test(compact),
-        searchPathFixed: /set\s+search_path\s*=/i.test(compact),
+        searchPathFixed: /set\s+search_path\s*(?:=|to)\s*/i.test(compact),
         source: compact
       });
       continue;
@@ -152,7 +260,14 @@ function extractModel(sql) {
     }
   }
 
-  return { statements, tables: [...tables.values()], policies, grants, functions, views };
+  return {
+    statements,
+    tables: [...tables.values()],
+    policies: [...policies.values()],
+    grants: grants.filter((grant) => grant.roles.length && grant.privileges.length),
+    functions,
+    views
+  };
 }
 
 function finding(ruleId, severity, title, target, evidence, remediation, confidence = 'high') {
@@ -197,6 +312,17 @@ function runRules(model, rawSql) {
   }
 
   for (const policy of model.policies) {
+    // INSERT already has the more specific RLS-004 check below. Avoid double
+    // counting the same missing WITH CHECK defect in the score.
+    if (!policy.using && !policy.check && policy.command !== 'insert') {
+      const writable = ['insert', 'update', 'delete', 'all'].includes(policy.command);
+      findings.push(finding(
+        'RLS-007', writable ? 'critical' : 'high', 'Policy omits every row condition.', `${policy.table} / ${policy.name}`,
+        `PostgreSQL treats an omitted policy expression as TRUE. This ${policy.command.toUpperCase()} policy therefore allows every row for its target roles.`,
+        '-- Add an explicit USING (...) and/or WITH CHECK (...) expression that enforces ownership or tenant membership.'
+      ));
+    }
+
     if (/^\s*(true|1\s*=\s*1)\s*$/i.test(policy.using || '') || /^\s*(true|1\s*=\s*1)\s*$/i.test(policy.check || '')) {
       const writable = ['insert', 'update', 'delete', 'all'].includes(policy.command);
       findings.push(finding(
@@ -220,6 +346,17 @@ function runRules(model, rawSql) {
         'Omitting the TO clause makes the policy apply to PUBLIC, which includes anonymous users.',
         '-- Add TO authenticated (or a restricted DB role) to match your intent.'
       ));
+    }
+
+    if (policy.table === 'storage.objects' && ['insert', 'update', 'delete', 'all'].includes(policy.command)) {
+      const expression = `${policy.using || ''} ${policy.check || ''}`.toLowerCase();
+      if (!/\bbucket_id\b/.test(expression)) {
+        findings.push(finding(
+          'STORAGE-001', 'high', 'Storage write policy is not scoped to a bucket.', `${policy.table} / ${policy.name}`,
+          'The policy can authorize writes across every Storage bucket because neither USING nor WITH CHECK constrains bucket_id.',
+          "-- Add a bucket boundary, for example: WITH CHECK (bucket_id = 'avatars' AND (SELECT auth.uid())::text = owner_id)", 'medium'
+        ));
+      }
     }
   }
 
@@ -276,7 +413,7 @@ export function scanSql(sql, source = 'pasted SQL') {
   for (const item of findings) counts[item.severity] += 1;
 
   return {
-    version: '0.1.0',
+    version: '0.2.0',
     source,
     scannedAt: new Date().toISOString(),
     score: Math.max(0, 100 - penalty),

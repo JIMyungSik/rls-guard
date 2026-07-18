@@ -1,0 +1,86 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { scanSql } from '../scanner.js';
+
+const ids = (sql) => scanSql(sql).findings.map((item) => item.ruleId);
+
+test('reconstructs final state after dropped policies and tables', () => {
+  const result = scanSql(`
+    create table public.notes (id bigint, user_id uuid);
+    alter table public.notes enable row level security;
+    create policy "old open policy" on public.notes for select using (true);
+    drop policy "old open policy" on public.notes;
+    create policy "owner reads" on public.notes for select to authenticated
+      using ((select auth.uid()) = user_id);
+    create table public.temporary_data (id bigint);
+    drop table public.temporary_data;
+  `);
+  assert.deepEqual(result.findings, []);
+  assert.equal(result.summary.tables, 1);
+  assert.equal(result.summary.policies, 1);
+});
+
+test('ignores DDL in comments but preserves comment markers in strings', () => {
+  const result = scanSql(`
+    -- create table public.comment_only (id bigint);
+    /* create table public.block_comment_only (id bigint); */
+    create table private.audit_log (message text default '--still a string');
+  `);
+  assert.equal(result.summary.tables, 1);
+  assert.equal(result.findings.length, 0);
+});
+
+test('detects a policy that omits every condition', () => {
+  const findings = ids(`
+    create table public.profiles (id uuid primary key);
+    alter table public.profiles enable row level security;
+    create policy open_profiles on public.profiles for select to anon;
+  `);
+  assert.ok(findings.includes('RLS-007'));
+});
+
+test('does not report an anonymous grant after it is revoked', () => {
+  const findings = ids(`
+    grant insert, update on table public.notes to anon;
+    revoke insert, update on table public.notes from anon;
+  `);
+  assert.ok(!findings.includes('GRANT-001'));
+});
+
+test('keeps unrevoked privileges and roles in the final grant state', () => {
+  const result = scanSql(`
+    grant insert, update on table public.notes to anon, authenticated;
+    revoke insert on table public.notes from anon;
+  `);
+  const grantFindings = result.findings.filter((item) => item.ruleId === 'GRANT-001');
+  assert.equal(grantFindings.length, 1);
+  assert.match(grantFindings[0].evidence, /update/i);
+  assert.doesNotMatch(grantFindings[0].evidence, /insert/i);
+});
+
+test('detects storage writes that are not bucket scoped', () => {
+  const findings = ids(`
+    create policy upload_any_bucket on storage.objects for insert to authenticated
+      with check ((select auth.uid())::text = owner_id);
+  `);
+  assert.ok(findings.includes('STORAGE-001'));
+});
+
+test('accepts bucket-scoped storage writes', () => {
+  const findings = ids(`
+    create policy upload_avatars on storage.objects for insert to authenticated
+      with check (bucket_id = 'avatars' and (select auth.uid())::text = owner_id);
+  `);
+  assert.ok(!findings.includes('STORAGE-001'));
+  assert.ok(!findings.includes('RLS-007'));
+});
+
+test('accepts both supported search_path assignment forms', () => {
+  for (const assignment of ['=', 'to']) {
+    const findings = ids(`
+      create function public.secure_fn() returns void language sql security definer
+      set search_path ${assignment} pg_catalog, public as $$ select null; $$;
+    `);
+    assert.ok(!findings.includes('FUNC-001'));
+  }
+});
