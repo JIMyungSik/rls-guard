@@ -70,7 +70,7 @@ node cli.js --format markdown --output rls-guard-report.md supabase/migrations/*
 After the package is published, the pinned form will be:
 
 ```bash
-npx @jimyungsik/rls-guard@0.5.0 --fail-on high supabase/migrations/*.sql
+npx @carjms/rls-guard@0.5.0 --fail-on high supabase/migrations/*.sql
 ```
 
 ## Limitations (honest ones)

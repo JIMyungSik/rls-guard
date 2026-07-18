@@ -1,16 +1,33 @@
 {
-  "name": "@jimyungsik/rls-guard",
+  "name": "@carjms/rls-guard",
   "version": "0.5.0",
   "description": "Static Supabase Row Level Security scanner for migrations and CI",
   "license": "MIT",
-  "repository": "github:JIMyungSik/rls-guard",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/JIMyungSik/rls-guard.git"
+  },
   "homepage": "https://rls-guard-rose.vercel.app",
-  "keywords": ["supabase", "postgresql", "rls", "security", "ci"],
-  "files": ["cli.js", "scanner.js", "LICENSE", "README.md", "CHANGELOG.md"],
-  "publishConfig": { "access": "public" },
+  "keywords": [
+    "supabase",
+    "postgresql",
+    "rls",
+    "security",
+    "ci"
+  ],
+  "files": [
+    "cli.js",
+    "scanner.js",
+    "LICENSE",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
   "type": "module",
   "bin": {
-    "rls-guard": "./cli.js"
+    "rls-guard": "cli.js"
   },
   "scripts": {
     "scan": "node cli.js",
