@@ -1,0 +1,292 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RLS Guard — Free Supabase RLS Security Scanner</title>
+<meta name="description" content="Paste your Supabase migration SQL and get an instant Row Level Security audit. 10 rules, fix SQL included. 100% client-side — your SQL never leaves your browser.">
+<meta property="og:title" content="RLS Guard — Free Supabase RLS Security Scanner">
+<meta property="og:description" content="Instant RLS audit for your Supabase SQL. Runs entirely in your browser.">
+<style>
+  :root {
+    --bg: #0b0f14; --panel: #111823; --panel2: #0e141d; --border: #1e2a3a;
+    --text: #dbe7f3; --muted: #7d93ab; --accent: #3ecf8e; --accent-dim: #2aa873;
+    --critical: #ff5d5d; --high: #ff9f43; --medium: #ffd166; --low: #6ab7ff;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: var(--bg); color: var(--text); font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+  a { color: var(--accent); text-decoration: none; }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; border-bottom: 1px solid var(--border); }
+  .logo { font-weight: 700; font-size: 18px; letter-spacing: -0.2px; }
+  .logo span { color: var(--accent); }
+  nav a { color: var(--muted); margin-left: 18px; font-size: 14px; }
+  nav a:hover { color: var(--text); }
+  .hero { text-align: center; padding: 56px 0 12px; }
+  .hero h1 { font-size: clamp(28px, 5vw, 44px); line-height: 1.15; letter-spacing: -1px; }
+  .hero h1 em { color: var(--accent); font-style: normal; }
+  .hero p { color: var(--muted); max-width: 620px; margin: 16px auto 0; }
+  .privacy { display: inline-flex; align-items: center; gap: 8px; margin-top: 18px; font-size: 13px; color: var(--accent); background: rgba(62,207,142,.08); border: 1px solid rgba(62,207,142,.25); padding: 6px 14px; border-radius: 999px; }
+  .editor { margin: 36px 0 0; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; }
+  .editor-bar { display: flex; align-items: center; justify-content: space-between; padding: 10px 14px; border-bottom: 1px solid var(--border); background: var(--panel2); }
+  .editor-bar .hint { color: var(--muted); font-size: 13px; }
+  .samples button { background: none; border: 1px solid var(--border); color: var(--muted); font-size: 12px; padding: 4px 10px; border-radius: 6px; cursor: pointer; margin-left: 6px; }
+  .samples button:hover { color: var(--text); border-color: var(--muted); }
+  textarea { width: 100%; min-height: 260px; resize: vertical; background: transparent; color: var(--text); border: 0; outline: none; padding: 16px; font-family: var(--mono); font-size: 13.5px; line-height: 1.5; }
+  .actions { padding: 14px; border-top: 1px solid var(--border); display: flex; gap: 12px; align-items: center; }
+  .scan-btn { background: var(--accent); color: #04110a; font-weight: 700; font-size: 16px; border: 0; padding: 12px 28px; border-radius: 8px; cursor: pointer; }
+  .scan-btn:hover { background: var(--accent-dim); }
+  .actions .note { color: var(--muted); font-size: 13px; }
+  #results { margin: 36px 0 60px; display: none; }
+  .scorecard { display: flex; gap: 24px; align-items: center; background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 24px; flex-wrap: wrap; }
+  .ring { position: relative; width: 110px; height: 110px; flex: none; }
+  .ring svg { transform: rotate(-90deg); }
+  .ring .num { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 800; }
+  .counts { display: flex; gap: 10px; flex-wrap: wrap; }
+  .count { border: 1px solid var(--border); border-radius: 8px; padding: 8px 14px; font-size: 13px; color: var(--muted); }
+  .count b { display: block; font-size: 20px; }
+  .count.critical b { color: var(--critical); } .count.high b { color: var(--high); }
+  .count.medium b { color: var(--medium); } .count.low b { color: var(--low); }
+  .verdict { flex: 1; min-width: 200px; color: var(--muted); font-size: 14px; }
+  .finding { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; margin-top: 14px; overflow: hidden; }
+  .f-head { display: flex; gap: 12px; align-items: baseline; padding: 14px 18px 4px; flex-wrap: wrap; }
+  .badge { font-size: 11px; font-weight: 800; letter-spacing: .5px; padding: 3px 9px; border-radius: 5px; text-transform: uppercase; flex: none; }
+  .badge.critical { background: rgba(255,93,93,.15); color: var(--critical); }
+  .badge.high { background: rgba(255,159,67,.15); color: var(--high); }
+  .badge.medium { background: rgba(255,209,102,.13); color: var(--medium); }
+  .badge.low { background: rgba(106,183,255,.13); color: var(--low); }
+  .f-head .rule { color: var(--muted); font-family: var(--mono); font-size: 12px; }
+  .f-head h3 { font-size: 16px; }
+  .f-body { padding: 6px 18px 16px; font-size: 14px; color: var(--muted); }
+  .f-body .target { font-family: var(--mono); font-size: 13px; color: var(--text); }
+  .fix { position: relative; margin-top: 10px; background: #0a0f16; border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; font-family: var(--mono); font-size: 13px; color: #9fe8c6; white-space: pre-wrap; overflow-x: auto; }
+  .copy { position: absolute; top: 8px; right: 8px; background: var(--panel); border: 1px solid var(--border); color: var(--muted); font-size: 11px; padding: 3px 9px; border-radius: 5px; cursor: pointer; }
+  .copy:hover { color: var(--text); }
+  .clean { background: var(--panel); border: 1px solid rgba(62,207,142,.35); border-radius: 12px; padding: 28px; text-align: center; margin-top: 14px; }
+  .clean h3 { color: var(--accent); }
+  .clean p { color: var(--muted); font-size: 14px; margin-top: 6px; }
+  .rules-section { padding: 48px 0; border-top: 1px solid var(--border); }
+  .rules-section h2 { font-size: 24px; margin-bottom: 8px; }
+  .rules-section > .wrap > p { color: var(--muted); margin-bottom: 24px; }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border); }
+  th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
+  td:first-child { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
+  .table-scroll { overflow-x: auto; }
+  footer { border-top: 1px solid var(--border); padding: 32px 0 48px; color: var(--muted); font-size: 14px; }
+  footer .kr { margin-top: 14px; padding: 14px 18px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; }
+  .disclaimer { font-size: 12.5px; margin-top: 14px; opacity: .8; }
+  @media (max-width: 600px) { .scorecard { gap: 14px; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap" style="display:flex;align-items:center;justify-content:space-between;">
+    <div class="logo">🛡 RLS<span>Guard</span></div>
+    <nav>
+      <a href="#rules">Rules</a>
+      <a href="https://github.com/JIMyungSik/rls-guard" target="_blank" rel="noopener">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero wrap">
+  <h1>Is your Supabase database<br><em>actually</em> locked down?</h1>
+  <p>Paste your migration SQL below and get an instant Row Level Security audit — missing RLS, always-true policies, leaky views, dangerous grants, and the exact SQL to fix each one.</p>
+  <div class="privacy">🔒 100% client-side — your SQL never leaves this browser tab</div>
+</section>
+
+<main class="wrap">
+  <div class="editor">
+    <div class="editor-bar">
+      <span class="hint">supabase/migrations/*.sql — paste one file or all of them</span>
+      <span class="samples">
+        <button id="load-vuln">Load vulnerable example</button>
+        <button id="load-safe">Load safe example</button>
+      </span>
+    </div>
+    <textarea id="sql" spellcheck="false" placeholder="create table public.orders ( ... );&#10;alter table public.orders enable row level security;&#10;create policy ..."></textarea>
+    <div class="actions">
+      <button class="scan-btn" id="scan">Scan my SQL →</button>
+      <span class="note">10 rules · instant · free · no signup</span>
+    </div>
+  </div>
+
+  <div id="results"></div>
+</main>
+
+<section class="rules-section" id="rules">
+  <div class="wrap">
+    <h2>What it checks</h2>
+    <p>The same classes of misconfiguration behind most real-world Supabase data leaks.</p>
+    <div class="table-scroll">
+    <table>
+      <thead><tr><th>Rule</th><th>Detects</th><th>Severity</th></tr></thead>
+      <tbody>
+        <tr><td>RLS-001</td><td>Table in an exposed schema without RLS enabled</td><td>Critical</td></tr>
+        <tr><td>RLS-002</td><td>RLS enabled but zero policies (silent lockout)</td><td>Medium</td></tr>
+        <tr><td>RLS-003</td><td>Always-true policy conditions like <code>USING (true)</code></td><td>High / Critical</td></tr>
+        <tr><td>RLS-004</td><td>INSERT policy missing <code>WITH CHECK</code></td><td>High</td></tr>
+        <tr><td>RLS-005</td><td>Owner/tenant column never referenced by any policy</td><td>High</td></tr>
+        <tr><td>RLS-006</td><td>Write policies applied to the PUBLIC role</td><td>High</td></tr>
+        <tr><td>GRANT-001</td><td>Write privileges granted to <code>anon</code>/<code>public</code></td><td>High</td></tr>
+        <tr><td>FUNC-001</td><td><code>SECURITY DEFINER</code> functions with unpinned search_path</td><td>High</td></tr>
+        <tr><td>VIEW-001</td><td>Views without <code>security_invoker</code> (RLS bypass)</td><td>High</td></tr>
+        <tr><td>SECRET-001</td><td>Service keys / connection strings pasted into SQL</td><td>Critical</td></tr>
+      </tbody>
+    </table>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>Built by <a href="https://github.com/JIMyungSik" target="_blank" rel="noopener">@JIMyungSik</a> · Open source on <a href="https://github.com/JIMyungSik/rls-guard" target="_blank" rel="noopener">GitHub</a> — a ⭐ helps more devs find this.</div>
+    <div class="disclaimer">A clean scan is not a security guarantee. This static analysis doesn't replace a full audit or live access testing. Nothing you paste is uploaded, stored, or logged — check the network tab.</div>
+    <div class="kr">🇰🇷 한국 개발자시라면 — 이 도구는 AI 에이전트가 72시간 챌린지 중에 만들었습니다. 제작→배포→수익화 전 과정 기록: <a href="https://ai-72h-playbook.vercel.app">72시간 플레이북 보기 →</a></div>
+  </div>
+</footer>
+
+<script type="module">
+import { scanSql } from './scanner.js';
+
+const SAMPLE_VULN = `create table public.orders (
+  id bigint generated always as identity primary key,
+  user_id uuid references auth.users(id),
+  total integer not null
+);
+
+grant select, insert, update, delete on public.orders to anon;
+
+create policy "Everyone can update orders"
+on public.orders
+for update
+using (true);
+
+create table public.profiles (
+  id uuid primary key,
+  user_id uuid references auth.users(id),
+  display_name text
+);
+
+alter table public.profiles enable row level security;
+
+create policy "Users can insert profiles"
+on public.profiles
+for insert
+to authenticated;
+
+create or replace function public.admin_report()
+returns integer
+language sql
+security definer
+as $$ select count(*)::integer from public.orders $$;
+
+create view public.order_totals as
+select user_id, sum(total) total from public.orders group by user_id;`;
+
+const SAMPLE_SAFE = `create table public.notes (
+  id bigint generated always as identity primary key,
+  user_id uuid not null references auth.users(id),
+  body text not null
+);
+
+alter table public.notes enable row level security;
+
+create policy "Users read own notes"
+on public.notes
+for select
+to authenticated
+using ((select auth.uid()) = user_id);
+
+create policy "Users insert own notes"
+on public.notes
+for insert
+to authenticated
+with check ((select auth.uid()) = user_id);`;
+
+const $ = (s) => document.querySelector(s);
+$('#load-vuln').onclick = () => { $('#sql').value = SAMPLE_VULN; run(); };
+$('#load-safe').onclick = () => { $('#sql').value = SAMPLE_SAFE; run(); };
+$('#scan').onclick = run;
+
+function ringColor(score) {
+  if (score >= 80) return 'var(--accent)';
+  if (score >= 50) return 'var(--medium)';
+  return 'var(--critical)';
+}
+
+function verdictText(r) {
+  if (!r.findings.length) return 'No rule-based risks found in the SQL you pasted. Nice — but remember a clean scan is not a full audit.';
+  const c = r.summary.critical;
+  if (c) return `${c} critical issue${c > 1 ? 's' : ''} found. If this SQL is live, your data may be readable or writable by anyone with your public anon key. Fix the criticals first — each finding below includes the SQL.`;
+  return 'No criticals, but the findings below can still turn into data leaks under the right conditions. Each one includes suggested fix SQL.';
+}
+
+function esc(s) {
+  return s.replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+}
+
+function run() {
+  const sql = $('#sql').value.trim();
+  const box = $('#results');
+  if (!sql) { box.style.display = 'none'; return; }
+  const r = scanSql(sql);
+  const circumference = 2 * Math.PI * 48;
+  const dash = circumference * r.score / 100;
+
+  let html = `
+  <div class="scorecard">
+    <div class="ring">
+      <svg width="110" height="110" viewBox="0 0 110 110">
+        <circle cx="55" cy="55" r="48" fill="none" stroke="var(--border)" stroke-width="9"/>
+        <circle cx="55" cy="55" r="48" fill="none" stroke="${ringColor(r.score)}" stroke-width="9"
+          stroke-linecap="round" stroke-dasharray="${dash} ${circumference}"/>
+      </svg>
+      <div class="num" style="color:${ringColor(r.score)}">${r.score}</div>
+    </div>
+    <div class="counts">
+      <div class="count critical"><b>${r.summary.critical}</b>Critical</div>
+      <div class="count high"><b>${r.summary.high}</b>High</div>
+      <div class="count medium"><b>${r.summary.medium}</b>Medium</div>
+      <div class="count"><b>${r.summary.tables}</b>Tables</div>
+      <div class="count"><b>${r.summary.policies}</b>Policies</div>
+    </div>
+    <div class="verdict">${verdictText(r)}</div>
+  </div>`;
+
+  if (!r.findings.length) {
+    html += `<div class="clean"><h3>✓ No findings</h3><p>Scanned ${r.summary.tables} table(s) and ${r.summary.policies} polic(ies) against 10 rules.</p></div>`;
+  } else {
+    for (const f of r.findings) {
+      html += `
+      <div class="finding">
+        <div class="f-head">
+          <span class="badge ${f.severity}">${f.severity}</span>
+          <span class="rule">${f.ruleId}</span>
+          <h3>${esc(f.title)}</h3>
+        </div>
+        <div class="f-body">
+          <div class="target">→ ${esc(f.target)}</div>
+          <div style="margin-top:6px">${esc(f.evidence)}</div>
+          <div class="fix"><button class="copy">copy</button>${esc(f.remediation)}</div>
+        </div>
+      </div>`;
+    }
+  }
+
+  box.innerHTML = html;
+  box.style.display = 'block';
+  box.querySelectorAll('.copy').forEach((btn) => {
+    btn.onclick = () => {
+      navigator.clipboard.writeText(btn.parentElement.textContent.replace(/^copy/, '').trim());
+      btn.textContent = 'copied ✓';
+      setTimeout(() => { btn.textContent = 'copy'; }, 1500);
+    };
+  });
+  box.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
+</body>
+</html>
