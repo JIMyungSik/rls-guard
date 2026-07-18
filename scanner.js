@@ -16,6 +16,12 @@ function policyKey(table, name) {
   return `${qualifyTable(table)}\u0000${normalizeIdentifier(name)}`;
 }
 
+function renameInSchema(oldName, newName) {
+  const normalized = normalizeIdentifier(newName);
+  if (normalized.includes('.')) return normalized;
+  return `${oldName.split('.')[0]}.${normalized}`;
+}
+
 // Remove comments without corrupting quoted strings or dollar-quoted bodies.
 // This prevents commented-out DDL and values such as '--not-a-comment' from
 // changing the reconstructed migration state.
@@ -132,8 +138,8 @@ function extractModel(sql) {
   const tables = new Map();
   const policies = new Map();
   let grants = [];
-  const functions = [];
-  const views = [];
+  const functions = new Map();
+  const views = new Map();
 
   const ensureTable = (name) => {
     const qualified = qualifyTable(name);
@@ -266,10 +272,41 @@ function extractModel(sql) {
       continue;
     }
 
-    const fn = compact.match(/create\s+(?:or\s+replace\s+)?function\s+([\w".]+)[^]*$/i);
+    const dropFunction = compact.match(/drop\s+function\s+(?:if\s+exists\s+)?([\w".]+)\s*(?:\([^)]*\))?/i);
+    if (dropFunction) {
+      functions.delete(qualifyTable(dropFunction[1]));
+      continue;
+    }
+
+    const alterFunction = compact.match(/alter\s+function\s+([\w".]+)\s*(?:\([^)]*\))?\s+([^]*)$/i);
+    if (alterFunction) {
+      const name = qualifyTable(alterFunction[1]);
+      const existing = functions.get(name);
+      if (existing) {
+        const operation = alterFunction[2];
+        if (/\bsecurity\s+definer\b/i.test(operation)) existing.securityDefiner = true;
+        if (/\bsecurity\s+invoker\b/i.test(operation)) existing.securityDefiner = false;
+        if (/\bset\s+search_path\s*(?:=|to)\s*/i.test(operation)) existing.searchPathFixed = true;
+        if (/\breset\s+search_path\b/i.test(operation)) existing.searchPathFixed = false;
+        const renamed = operation.match(/\brename\s+to\s+([\w".]+)/i);
+        if (renamed) {
+          const newName = renameInSchema(name, renamed[1]);
+          functions.delete(name);
+          existing.name = newName;
+          existing.source = compact;
+          functions.set(newName, existing);
+        } else {
+          existing.source = compact;
+        }
+      }
+      continue;
+    }
+
+    const fn = compact.match(/create\s+(?:or\s+replace\s+)?function\s+([\w".]+)\s*\([^]*$/i);
     if (fn) {
-      functions.push({
-        name: normalizeIdentifier(fn[1]),
+      const name = qualifyTable(fn[1]);
+      functions.set(name, {
+        name,
         securityDefiner: /security\s+definer/i.test(compact),
         searchPathFixed: /set\s+search_path\s*(?:=|to)\s*/i.test(compact),
         source: compact
@@ -277,10 +314,40 @@ function extractModel(sql) {
       continue;
     }
 
+    const dropView = compact.match(/drop\s+view\s+(?:if\s+exists\s+)?([\w".]+)/i);
+    if (dropView) {
+      views.delete(qualifyTable(dropView[1]));
+      continue;
+    }
+
+    const alterView = compact.match(/alter\s+view\s+(?:if\s+exists\s+)?([\w".]+)\s+([^]*)$/i);
+    if (alterView) {
+      const oldName = qualifyTable(alterView[1]);
+      const existing = views.get(oldName);
+      if (existing) {
+        const operation = alterView[2];
+        const invoker = operation.match(/\bset\s*\([^)]*security_invoker\s*=\s*(true|on|false|off)[^)]*\)/i);
+        if (invoker) existing.securityInvoker = ['true', 'on'].includes(invoker[1].toLowerCase());
+        if (/\breset\s*\([^)]*\bsecurity_invoker\b[^)]*\)/i.test(operation)) existing.securityInvoker = false;
+        const renamed = operation.match(/\brename\s+to\s+([\w".]+)/i);
+        if (renamed) {
+          const newName = renameInSchema(oldName, renamed[1]);
+          views.delete(oldName);
+          existing.name = newName;
+          existing.source = compact;
+          views.set(newName, existing);
+        } else {
+          existing.source = compact;
+        }
+      }
+      continue;
+    }
+
     const view = compact.match(/create\s+(?:or\s+replace\s+)?view\s+([\w".]+)([^]*)/i);
     if (view) {
-      views.push({
-        name: qualifyTable(view[1]),
+      const name = qualifyTable(view[1]);
+      views.set(name, {
+        name,
         securityInvoker: /security_invoker\s*=\s*(?:true|on)/i.test(compact),
         source: compact
       });
@@ -292,8 +359,8 @@ function extractModel(sql) {
     tables: [...tables.values()],
     policies: [...policies.values()],
     grants: grants.filter((grant) => grant.roles.length && grant.privileges.length),
-    functions,
-    views
+    functions: [...functions.values()],
+    views: [...views.values()]
   };
 }
 
@@ -406,7 +473,7 @@ function runRules(model, rawSql) {
     ));
   }
 
-  for (const view of model.views.filter((item) => !item.securityInvoker)) {
+  for (const view of model.views.filter((item) => exposedSchemas.has(item.name.split('.')[0]) && !item.securityInvoker)) {
     findings.push(finding(
       'VIEW-001', 'high', 'View may bypass RLS on its base tables.', view.name,
       'No security_invoker option was found. By default the view runs with the owner\'s privileges, skipping RLS.',
@@ -440,7 +507,7 @@ export function scanSql(sql, source = 'pasted SQL') {
   for (const item of findings) counts[item.severity] += 1;
 
   return {
-    version: '0.2.1',
+    version: '0.3.0',
     source,
     scannedAt: new Date().toISOString(),
     score: Math.max(0, 100 - penalty),

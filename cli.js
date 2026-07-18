@@ -7,7 +7,7 @@ import { scanSql } from './scanner.js';
 const SEVERITY_RANK = { critical: 4, high: 3, medium: 2, low: 1 };
 
 function usage() {
-  return `RLS Guard 0.2.1
+  return `RLS Guard 0.3.0
 
 Usage:
   node cli.js [options] <migration.sql> [...more.sql]

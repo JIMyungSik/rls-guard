@@ -109,3 +109,65 @@ test('accepts both supported search_path assignment forms', () => {
     assert.ok(!findings.includes('FUNC-001'));
   }
 });
+
+test('reconstructs function replacement and later security changes', () => {
+  const replaced = ids(`
+    create function public.audit_event() returns void language sql security definer
+      as $$ select null; $$;
+    create or replace function public.audit_event() returns void language sql security definer
+      set search_path = pg_catalog, public as $$ select null; $$;
+  `);
+  assert.ok(!replaced.includes('FUNC-001'));
+
+  const altered = ids(`
+    create function public.audit_event() returns void language sql security definer
+      as $$ select null; $$;
+    alter function public.audit_event() set search_path to pg_catalog, public;
+  `);
+  assert.ok(!altered.includes('FUNC-001'));
+});
+
+test('preserves a function schema when it is renamed', () => {
+  const result = scanSql(`
+    create function internal.audit_event() returns void language sql security definer
+      as $$ select null; $$;
+    alter function internal.audit_event() rename to record_event;
+  `);
+  const finding = result.findings.find((item) => item.ruleId === 'FUNC-001');
+  assert.equal(finding?.target, 'internal.record_event');
+});
+
+test('does not report a security definer function after it is dropped', () => {
+  const findings = ids(`
+    create function public.temporary_fn() returns void language sql security definer
+      as $$ select null; $$;
+    drop function if exists public.temporary_fn();
+  `);
+  assert.ok(!findings.includes('FUNC-001'));
+});
+
+test('reconstructs view security options, rename, and drop', () => {
+  const altered = scanSql(`
+    create view public.profile_names as select 'name'::text as name;
+    alter view public.profile_names set (security_invoker = true);
+    alter view public.profile_names rename to safe_profile_names;
+  `);
+  assert.ok(!altered.findings.some((item) => item.ruleId === 'VIEW-001'));
+
+  const dropped = ids(`
+    create view public.temporary_view as select 1 as id;
+    drop view if exists public.temporary_view;
+  `);
+  assert.ok(!dropped.includes('VIEW-001'));
+
+  const renamedPrivate = scanSql(`
+    create view internal.audit_summary as select 1 as total;
+    alter view internal.audit_summary rename to activity_summary;
+  `);
+  assert.ok(!renamedPrivate.findings.some((item) => item.ruleId === 'VIEW-001'));
+});
+
+test('does not flag views outside Supabase exposed schemas', () => {
+  const findings = ids(`create view private.audit_summary as select 1 as total;`);
+  assert.ok(!findings.includes('VIEW-001'));
+});

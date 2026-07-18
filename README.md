@@ -14,7 +14,7 @@ Paste your `supabase/migrations/*.sql` and get findings in milliseconds — no s
 
 ![Scan results with severity badges and fix SQL](docs/demo-results.png)
 
-Most Supabase data leaks come from the same handful of misconfigurations: tables exposed without RLS, `USING (true)` policies, INSERT policies without `WITH CHECK`, views that silently bypass RLS. RLS Guard reconstructs the final state of pasted migrations—including policy alterations, drops, and grant revocations—and scans for 12 of these classes, with fix SQL for each finding.
+Most Supabase data leaks come from the same handful of misconfigurations: tables exposed without RLS, `USING (true)` policies, INSERT policies without `WITH CHECK`, views that silently bypass RLS. RLS Guard reconstructs the final state of pasted migrations—including policy, grant, function, and view changes—and scans for 12 of these classes, with fix SQL for each finding.
 
 ## Why client-side matters
 
@@ -67,14 +67,14 @@ cat migration.sql | node cli.js --json
 
 ## Limitations (honest ones)
 
-Regex-based static analysis on a lightweight SQL splitter — it does not implement the full PostgreSQL grammar, does not reconstruct state across your whole migration history, and does not test live access. **A clean scan is not a security guarantee.** Treat it as a fast first pass, not an audit.
+Regex-based static analysis on a lightweight SQL splitter — it does not implement the full PostgreSQL grammar, distinguish overloaded functions that share a name, or test live access. It only reconstructs the ordered SQL supplied in one scan. **A clean scan is not a security guarantee.** Treat it as a fast first pass, not an audit.
 
 Found a false positive or a rule idea? [Open an issue](../../issues) — feedback directly shapes the ruleset.
 
 ## Roadmap
 
 - [x] CI-ready CLI with severity thresholds and JSON output
-- [x] Migration state reconstruction for policy alterations, drops, and grant revocations
+- [x] Migration state reconstruction for policy, grant, function, and view changes
 - [x] Storage object write-policy bucket checks
 
 If any of these would be useful to you, a ⭐ and an issue telling me which one helps prioritize.
