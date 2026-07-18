@@ -53,6 +53,18 @@ const report = scanSql(mySql);
 console.log(report.score, report.findings);
 ```
 
+## Use in CI
+
+Scan one migration, several ordered migrations, or stdin. The CLI exits with status 1 when it finds a Critical issue by default, so it can fail a CI job:
+
+```bash
+node cli.js supabase/migrations/*.sql
+node cli.js --fail-on high supabase/migrations/*.sql
+cat migration.sql | node cli.js --json
+```
+
+`--fail-on` accepts `critical`, `high`, `medium`, or `low`. Findings never include matched secret values.
+
 ## Limitations (honest ones)
 
 Regex-based static analysis on a lightweight SQL splitter — it does not implement the full PostgreSQL grammar, does not reconstruct state across your whole migration history, and does not test live access. **A clean scan is not a security guarantee.** Treat it as a fast first pass, not an audit.
@@ -61,7 +73,7 @@ Found a false positive or a rule idea? [Open an issue](../../issues) — feedbac
 
 ## Roadmap
 
-- [ ] GitHub Action — fail CI when a migration introduces a Critical finding
+- [x] CI-ready CLI with severity thresholds and JSON output
 - [x] Migration state reconstruction for policy alterations, drops, and grant revocations
 - [x] Storage object write-policy bucket checks
 

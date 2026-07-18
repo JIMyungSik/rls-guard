@@ -3,7 +3,11 @@
   "version": "0.2.1",
   "private": true,
   "type": "module",
+  "bin": {
+    "rls-guard": "./cli.js"
+  },
   "scripts": {
+    "scan": "node cli.js",
     "test": "node --test"
   },
   "engines": {
