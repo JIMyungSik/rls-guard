@@ -6,7 +6,7 @@
 <title>RLS Guard — Free Supabase RLS Security Scanner</title>
 <meta name="description" content="Paste your Supabase migration SQL and get an instant Row Level Security audit. 12 rules, fix SQL included. 100% client-side — your SQL never leaves your browser.">
 <meta property="og:title" content="RLS Guard — Free Supabase RLS Security Scanner">
-<meta property="og:description" content="Instant RLS audit for your Supabase SQL. Runs entirely in your browser.">
+<meta property="og:description" content="Instant RLS audit for Supabase SQL in your browser or CI pipeline.">
 <style>
   :root {
     --bg: #0b0f14; --panel: #111823; --panel2: #0e141d; --border: #1e2a3a;
@@ -74,10 +74,19 @@
   th { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
   td:first-child { font-family: var(--mono); font-size: 13px; white-space: nowrap; }
   .table-scroll { overflow-x: auto; }
+  .ci-section { padding: 48px 0; border-top: 1px solid var(--border); }
+  .ci-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; align-items: start; }
+  .ci-section h2 { font-size: 24px; margin-bottom: 8px; }
+  .ci-section p { color: var(--muted); }
+  .ci-code { background: #0a0f16; border: 1px solid var(--border); border-radius: 10px; padding: 16px; color: #9fe8c6; font: 13px/1.7 var(--mono); white-space: pre-wrap; overflow-x: auto; }
+  .ci-points { margin: 16px 0 20px; padding-left: 20px; color: var(--muted); }
+  .ci-points strong { color: var(--text); }
+  .secondary-btn { display: inline-block; border: 1px solid var(--accent); color: var(--accent); padding: 9px 16px; border-radius: 8px; font-weight: 650; }
+  .secondary-btn:hover { background: rgba(62,207,142,.08); }
   footer { border-top: 1px solid var(--border); padding: 32px 0 48px; color: var(--muted); font-size: 14px; }
   footer .kr { margin-top: 14px; padding: 14px 18px; background: var(--panel); border: 1px solid var(--border); border-radius: 10px; }
   .disclaimer { font-size: 12.5px; margin-top: 14px; opacity: .8; }
-  @media (max-width: 600px) { .scorecard { gap: 14px; } }
+  @media (max-width: 700px) { .scorecard { gap: 14px; } .ci-grid { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -86,6 +95,7 @@
     <div class="logo">🛡 RLS<span>Guard</span></div>
     <nav>
       <a href="#rules">Rules</a>
+      <a href="#ci">CI</a>
       <a href="https://github.com/JIMyungSik/rls-guard" target="_blank" rel="noopener">GitHub</a>
     </nav>
   </div>
@@ -139,6 +149,30 @@
       </tbody>
     </table>
     </div>
+  </div>
+</section>
+
+<section class="ci-section" id="ci">
+  <div class="wrap ci-grid">
+    <div>
+      <h2>Fail unsafe migrations in CI</h2>
+      <p>The browser scanner and CLI use the same engine. Scan ordered migration files, choose a severity threshold, and emit JSON for another tool to consume.</p>
+      <ul class="ci-points">
+        <li><strong>Exit 1</strong> at or above your chosen severity</li>
+        <li><strong>Migration-aware</strong> across ALTER, DROP, and REVOKE</li>
+        <li><strong>Secret-safe reports</strong> never echo matched key values</li>
+      </ul>
+      <a class="secondary-btn" href="https://github.com/JIMyungSik/rls-guard#use-in-ci" target="_blank" rel="noopener">CLI setup on GitHub →</a>
+    </div>
+    <pre class="ci-code"><code># Fail on Critical findings (default)
+node cli.js supabase/migrations/*.sql
+
+# Use a stricter threshold
+node cli.js --fail-on high \
+  supabase/migrations/*.sql
+
+# Machine-readable output
+cat migration.sql | node cli.js --json</code></pre>
   </div>
 </section>
 
@@ -222,7 +256,7 @@ function ringColor(score) {
 function verdictText(r) {
   if (!r.findings.length) return 'No rule-based risks found in the SQL you pasted. Nice — but remember a clean scan is not a full audit.';
   const c = r.summary.critical;
-  if (c) return `${c} critical issue${c > 1 ? 's' : ''} found. If this SQL is live, your data may be readable or writable by anyone with your public anon key. Fix the criticals first — each finding below includes the SQL.`;
+  if (c) return `${c} critical issue${c > 1 ? 's' : ''} found. If this SQL is live, API roles with matching grants may be able to read or write unintended rows. Fix the criticals first — each finding below includes the SQL.`;
   return 'No criticals, but the findings below can still turn into data leaks under the right conditions. Each one includes suggested fix SQL.';
 }
 
