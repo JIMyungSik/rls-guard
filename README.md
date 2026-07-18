@@ -14,7 +14,7 @@ Paste your `supabase/migrations/*.sql` and get findings in milliseconds — no s
 
 ![Scan results with severity badges and fix SQL](docs/demo-results.png)
 
-Most Supabase data leaks come from the same handful of misconfigurations: tables exposed without RLS, `USING (true)` policies, INSERT policies without `WITH CHECK`, views that silently bypass RLS. RLS Guard reconstructs the final state of pasted migrations and scans for 12 of these classes, with fix SQL for each finding.
+Most Supabase data leaks come from the same handful of misconfigurations: tables exposed without RLS, `USING (true)` policies, INSERT policies without `WITH CHECK`, views that silently bypass RLS. RLS Guard reconstructs the final state of pasted migrations—including policy alterations, drops, and grant revocations—and scans for 12 of these classes, with fix SQL for each finding.
 
 ## Why client-side matters
 
@@ -62,7 +62,7 @@ Found a false positive or a rule idea? [Open an issue](../../issues) — feedbac
 ## Roadmap
 
 - [ ] GitHub Action — fail CI when a migration introduces a Critical finding
-- [x] Migration state reconstruction for table/policy drops and grant revocations
+- [x] Migration state reconstruction for policy alterations, drops, and grant revocations
 - [x] Storage object write-policy bucket checks
 
 If any of these would be useful to you, a ⭐ and an issue telling me which one helps prioritize.

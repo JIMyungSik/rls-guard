@@ -39,6 +39,31 @@ test('detects a policy that omits every condition', () => {
   assert.ok(findings.includes('RLS-007'));
 });
 
+test('reconstructs a policy hardened by ALTER POLICY', () => {
+  const result = scanSql(`
+    create table public.documents (id bigint, user_id uuid);
+    alter table public.documents enable row level security;
+    create policy document_access on public.documents for all;
+    alter policy document_access on public.documents to authenticated
+      using ((select auth.uid()) = user_id)
+      with check ((select auth.uid()) = user_id);
+  `);
+  assert.deepEqual(result.findings, []);
+});
+
+test('tracks policy renames before later alterations', () => {
+  const result = scanSql(`
+    create table public.documents (id bigint, user_id uuid);
+    alter table public.documents enable row level security;
+    create policy old_name on public.documents for select using (true);
+    alter policy old_name on public.documents rename to owner_reads;
+    alter policy owner_reads on public.documents to authenticated
+      using ((select auth.uid()) = user_id);
+  `);
+  assert.deepEqual(result.findings, []);
+  assert.equal(result.summary.policies, 1);
+});
+
 test('does not report an anonymous grant after it is revoked', () => {
   const findings = ids(`
     grant insert, update on table public.notes to anon;

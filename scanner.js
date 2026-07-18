@@ -204,6 +204,33 @@ function extractModel(sql) {
       continue;
     }
 
+    const alterPolicy = compact.match(/alter\s+policy\s+(?:"([^"]+)"|([\w-]+))\s+on\s+([\w".]+)([^]*)/i);
+    if (alterPolicy) {
+      const oldName = alterPolicy[1] || alterPolicy[2];
+      const table = qualifyTable(alterPolicy[3]);
+      const tail = alterPolicy[4];
+      const oldKey = policyKey(table, oldName);
+      const existing = policies.get(oldKey);
+      if (existing) {
+        const renamed = tail.match(/\brename\s+to\s+(?:"([^"]+)"|([\w-]+))/i);
+        if (renamed) {
+          policies.delete(oldKey);
+          existing.name = renamed[1] || renamed[2];
+          existing.source = compact;
+          policies.set(policyKey(table, existing.name), existing);
+        } else {
+          const roles = tail.match(/\bto\s+(.+?)(?=\s+using\b|\s+with\s+check\b|$)/i);
+          const using = tail.match(/\busing\s*\(([^]*)\)(?=\s+with\s+check\b|$)/i);
+          const check = tail.match(/\bwith\s+check\s*\(([^]*)\)$/i);
+          if (roles) existing.roles = roles[1].split(',').map(normalizeIdentifier);
+          if (using) existing.using = using[1].trim();
+          if (check) existing.check = check[1].trim();
+          existing.source = compact;
+        }
+      }
+      continue;
+    }
+
     const grant = compact.match(/grant\s+(.+?)\s+on\s+(?:table\s+)?([\w".]+)\s+to\s+(.+)$/i);
     if (grant) {
       grants.push({
@@ -285,7 +312,7 @@ function runRules(model, rawSql) {
     if (exposedSchemas.has(schema) && !table.rlsEnabled) {
       findings.push(finding(
         'RLS-001', 'critical', 'RLS is disabled on a table in an exposed schema.', table.name,
-        `Table ${table.name} is created but there is no ENABLE ROW LEVEL SECURITY statement. Anyone with the anon key can read or write every row through the auto-generated API.`,
+        `Table ${table.name} is created but there is no ENABLE ROW LEVEL SECURITY statement. Any API role with table privileges bypasses row filtering; exposure depends on the active grants.`,
         `ALTER TABLE ${table.name} ENABLE ROW LEVEL SECURITY;`
       ));
     } else if (table.rlsEnabled && tablePolicies.length === 0) {
@@ -413,7 +440,7 @@ export function scanSql(sql, source = 'pasted SQL') {
   for (const item of findings) counts[item.severity] += 1;
 
   return {
-    version: '0.2.0',
+    version: '0.2.1',
     source,
     scannedAt: new Date().toISOString(),
     score: Math.max(0, 100 - penalty),
