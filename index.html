@@ -95,6 +95,10 @@
   .kit-card p { margin-top: 10px; color: var(--muted); }
   .kit-list { margin-top: 16px; padding-left: 20px; color: var(--muted); }
   .kit-list strong { color: var(--text); }
+  .kit-proof { margin-top: 18px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .proof-item { padding: 12px; border: 1px solid var(--border); border-radius: 9px; background: rgba(11,15,20,.5); }
+  .proof-item b { display: block; color: var(--accent); font: 750 18px/1.2 var(--mono); }
+  .proof-item span { display: block; margin-top: 5px; color: var(--muted); font-size: 12px; line-height: 1.4; }
   .kit-action { display: flex; flex-direction: column; justify-content: center; align-items: flex-start; padding: 22px; border: 1px solid var(--border); border-radius: 12px; background: rgba(11,15,20,.55); }
   .kit-action strong { font-size: 17px; }
   .kit-action .secondary-btn { margin-top: 16px; width: 100%; text-align: center; background: var(--accent); color: #04110a; }
@@ -113,6 +117,7 @@
     .scan-btn { width: 100%; }
     .scorecard { gap: 14px; }
     .ci-grid, .kit-card { grid-template-columns: 1fr; }
+    .kit-proof { grid-template-columns: 1fr; }
     .kit-card { padding: 22px; }
   }
 </style>
@@ -216,16 +221,22 @@ node cli.js --format sarif --output rls-guard.sarif supabase/migrations/*.sql</c
       <div>
         <div class="eyebrow" data-i18n="kitEyebrow">From finding to prevention</div>
         <h2 data-i18n="kitTitle">Found a risk? Apply the fix, test each role, and stop regressions in CI.</h2>
-        <p data-i18n="kitDescription">The free scanner diagnoses supplied SQL. The paid RLS Guard Security Kit v1.1 helps you carry that result into a real project with reusable implementation and verification templates.</p>
+        <p data-i18n="kitDescription">The free scanner diagnoses supplied SQL. The paid RLS Guard Security Kit v1.1 now connects that result to an explicit access contract, live role tests, and remote schema drift detection.</p>
         <ul class="kit-list">
           <li data-i18n-html="kitPoint1"><strong>12 SQL recipes</strong> for ownership, multi-tenancy, Storage, RPC, views, and functions</li>
-          <li data-i18n-html="kitPoint2"><strong>Runnable demo + pgTAP starter</strong> for role-based access tests</li>
-          <li data-i18n-html="kitPoint3"><strong>GitHub Actions, audit report, and release checklist</strong> to prevent recurrence</li>
+          <li data-i18n-html="kitPoint2"><strong>Role × CRUD × resource matrix</strong> to define the access contract before writing policies</li>
+          <li data-i18n-html="kitPoint3"><strong>16 pgTAP checks + GitHub Actions</strong> for anon, member, owner, and service_role</li>
+          <li data-i18n-html="kitPoint4"><strong>Dashboard drift detector</strong> to catch remote schema changes missing from migrations</li>
         </ul>
+        <div class="kit-proof" aria-label="Security Kit contents">
+          <div class="proof-item"><b>4 × CRUD</b><span data-i18n="proofRoles">Role access checks</span></div>
+          <div class="proof-item"><b>12</b><span data-i18n="proofRecipes">Reusable SQL recipes</span></div>
+          <div class="proof-item"><b>3 gates</b><span data-i18n="proofGates">Static scan · pgTAP · drift</span></div>
+        </div>
       </div>
       <aside class="kit-action">
         <strong data-i18n="kitActionTitle">RLS Guard Security Kit v1.1</strong>
-        <a class="secondary-btn" href="https://www.latpeed.com/products/8kJtX" target="_blank" rel="noopener" data-i18n="kitCta">View the practical kit →</a>
+        <a class="secondary-btn" href="https://www.latpeed.com/products/8kJtX?utm_source=rls_guard&amp;utm_medium=product&amp;utm_campaign=security_kit_v1_1" target="_blank" rel="noopener" data-i18n="kitCta">View the practical kit →</a>
         <small data-i18n="kitLimit">Static analysis and templates do not replace a project-specific security audit or live access testing.</small>
       </aside>
     </div>
@@ -255,8 +266,9 @@ const translations = {
     ciPoint1: '<strong>Exit 1</strong> at or above your chosen severity', ciPoint2: '<strong>Migration-aware</strong> across ALTER, DROP, and REVOKE', ciPoint3: '<strong>Secret-safe reports</strong> never echo matched key values',
     cliSetup: 'CLI setup on GitHub →', footerBuilt: 'Built by <a href="https://github.com/JIMyungSik" target="_blank" rel="noopener">@JIMyungSik</a> · Open source on <a href="https://github.com/JIMyungSik/rls-guard" target="_blank" rel="noopener">GitHub</a> — a ⭐ helps more devs find this.',
     kitEyebrow: 'From finding to prevention', kitTitle: 'Found a risk? Apply the fix, test each role, and stop regressions in CI.',
-    kitDescription: 'The free scanner diagnoses supplied SQL. The paid RLS Guard Security Kit v1.1 helps you carry that result into a real project with reusable implementation and verification templates.',
-    kitPoint1: '<strong>12 SQL recipes</strong> for ownership, multi-tenancy, Storage, RPC, views, and functions', kitPoint2: '<strong>Runnable demo + pgTAP starter</strong> for role-based access tests', kitPoint3: '<strong>GitHub Actions, audit report, and release checklist</strong> to prevent recurrence',
+    kitDescription: 'The free scanner diagnoses supplied SQL. The paid RLS Guard Security Kit v1.1 now connects that result to an explicit access contract, live role tests, and remote schema drift detection.',
+    kitPoint1: '<strong>12 SQL recipes</strong> for ownership, multi-tenancy, Storage, RPC, views, and functions', kitPoint2: '<strong>Role × CRUD × resource matrix</strong> to define the access contract before writing policies', kitPoint3: '<strong>16 pgTAP checks + GitHub Actions</strong> for anon, member, owner, and service_role', kitPoint4: '<strong>Dashboard drift detector</strong> to catch remote schema changes missing from migrations',
+    proofRoles: 'Role access checks', proofRecipes: 'Reusable SQL recipes', proofGates: 'Static scan · pgTAP · drift',
     kitActionTitle: 'RLS Guard Security Kit v1.1', kitCta: 'View the practical kit →', kitLimit: 'Static analysis and templates do not replace a project-specific security audit or live access testing.',
     disclaimer: "A clean scan is not a security guarantee. This static analysis doesn't replace a full audit or live access testing. Nothing you paste is uploaded, stored, or logged — check the network tab.",
     playbook: '🇰🇷 한국 개발자시라면 — 이 도구는 AI 에이전트가 72시간 챌린지 중에 만들었습니다. 제작→배포→수익화 전 과정 기록: <a href="https://ai-72h-playbook.pages.dev/?utm_source=rls_guard&amp;utm_medium=product&amp;utm_campaign=playbook">72시간 플레이북 보기 →</a>',
@@ -276,8 +288,9 @@ const translations = {
     ciPoint1: '선택한 심각도 이상이면 <strong>종료 코드 1</strong>', ciPoint2: 'ALTER, DROP, REVOKE를 추적하는 <strong>마이그레이션 인식</strong>', ciPoint3: '발견된 키 값을 노출하지 않는 <strong>비밀정보 안전 보고서</strong>',
     cliSetup: 'GitHub에서 CLI 설정 보기 →', footerBuilt: '<a href="https://github.com/JIMyungSik" target="_blank" rel="noopener">@JIMyungSik</a> 제작 · <a href="https://github.com/JIMyungSik/rls-guard" target="_blank" rel="noopener">GitHub</a> 오픈소스 — ⭐로 더 많은 개발자에게 알려주세요.',
     kitEyebrow: '진단에서 재발 방지까지', kitTitle: '위험을 발견했다면, 수정하고 역할별로 테스트한 뒤 CI에서 재발을 막으세요.',
-    kitDescription: '무료 스캐너는 제공된 SQL을 진단합니다. 유료 RLS Guard 실전 보안 킷 v1.1은 그 결과를 실제 프로젝트의 구현과 검증으로 이어갈 수 있는 재사용 템플릿을 제공합니다.',
-    kitPoint1: '<strong>SQL 처방전 12종</strong> — 소유권, 멀티테넌트, Storage, RPC, View, 함수', kitPoint2: '<strong>실행 데모 + pgTAP 스타터</strong> — 역할별 접근 테스트', kitPoint3: '<strong>GitHub Actions·감사 보고서·배포 체크리스트</strong> — 재발 방지',
+    kitDescription: '무료 스캐너는 제공된 SQL을 진단합니다. 유료 RLS Guard 실전 보안 킷 v1.1은 그 결과를 권한 계약, 실제 역할 테스트, 원격 schema drift 탐지까지 연결합니다.',
+    kitPoint1: '<strong>SQL 처방전 12종</strong> — 소유권, 멀티테넌트, Storage, RPC, View, 함수', kitPoint2: '<strong>역할 × CRUD × 리소스 매트릭스</strong> — 정책 작성 전 권한 계약 정의', kitPoint3: '<strong>pgTAP 16개 + GitHub Actions</strong> — anon, member, owner, service_role 검증', kitPoint4: '<strong>Dashboard drift 탐지</strong> — migration에 없는 원격 변경 차단',
+    proofRoles: '역할별 접근 검사', proofRecipes: '재사용 SQL 처방전', proofGates: '정적 검사 · pgTAP · drift',
     kitActionTitle: 'RLS Guard 실전 보안 킷 v1.1', kitCta: '실전 보안 킷 상세 보기 →', kitLimit: '정적 분석과 템플릿은 프로젝트별 보안 감사나 실제 접근 테스트를 대신하지 않습니다.',
     disclaimer: '검사 통과가 보안을 보장하지는 않습니다. 정적 분석은 전체 보안 감사나 실제 접근 테스트를 대체하지 않습니다. 붙여 넣은 내용은 업로드·저장·기록되지 않습니다.',
     playbook: '🇰🇷 이 도구는 AI 에이전트와 함께 72시간 챌린지 중에 만들었습니다. 제작→배포→수익화 전 과정 기록: <a href="https://ai-72h-playbook.pages.dev/?utm_source=rls_guard&amp;utm_medium=product&amp;utm_campaign=playbook">72시간 플레이북 보기 →</a>',
